@@ -137,7 +137,7 @@ public class IcebergExecutor extends BaseExecutor {
 
     CloseableIterator<Record> records =  icebergDataReader.readData(buildIcebergScanTask()).iterator();
     long insertCount = 0;
-    while(records.hasNext()) {
+    while (records.hasNext()) {
       if (writer.length() > targetSizeByBytes) {
         writer.close();
         result.add(writer.toDataFile());
