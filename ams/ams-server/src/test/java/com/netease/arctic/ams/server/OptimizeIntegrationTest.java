@@ -29,6 +29,7 @@ import org.apache.iceberg.RowDelta;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.Tables;
+import org.apache.iceberg.UpdateProperties;
 import org.apache.iceberg.data.GenericAppenderFactory;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.data.IcebergGenerics;
@@ -230,7 +231,6 @@ public class OptimizeIntegrationTest {
     // wait Major Optimize result
     OptimizeHistory optimizeHistory = waitOptimizeResult(tb, startId + 1);
     assertOptimizeHistory(optimizeHistory, OptimizeType.Minor, 2, 1);
-
     assertContainIdSet(readRecords(table), 0, 3, 4, 5, 6);
 
     // Step 2: insert delete file
@@ -241,9 +241,18 @@ public class OptimizeIntegrationTest {
     // wait Major Optimize result
     optimizeHistory = waitOptimizeResult(tb, startId + 2);
     assertOptimizeHistory(optimizeHistory, OptimizeType.Minor, 2, 1);
-
     assertContainIdSet(readRecords(table), 0, 4, 5, 6);
 
+    updateProperties(table, TableProperties.MAJOR_OPTIMIZE_TRIGGER_DUPLICATE_SIZE_BYTES_THRESHOLD, "1");
+
+    // Step 3: insert delete file
+    insertEqDeleteFiles(table, Lists.newArrayList(
+        newRecord(4, "bbb", quickDateWithZone(3))
+    ));
+    optimizeHistory = waitOptimizeResult(tb, startId + 3);
+    assertOptimizeHistory(optimizeHistory, OptimizeType.FullMajor, 2, 1);
+
+    assertContainIdSet(readRecords(table), 0, 5, 6);
   }
 
   private void testKeyedTableContinueOptimizing(KeyedTable table) {
@@ -382,6 +391,12 @@ public class OptimizeIntegrationTest {
 
     return hadoopTables.create(SCHEMA, PartitionSpec.unpartitioned(), tableProperties,
         ICEBERG_CATALOG_DIR + "/" + tableIdentifier.getDatabase() + "/" + tableIdentifier.getTableName());
+  }
+  
+  private void updateProperties(Table table, String key, String value) {
+    UpdateProperties updateProperties = table.updateProperties();
+    updateProperties.set(key, value);
+    updateProperties.commit();
   }
 
   private void createNoPkPartitionArcticTable(TableIdentifier tableIdentifier) {
