@@ -23,11 +23,16 @@ public class TestScanTable {
   private static final Logger LOG = LoggerFactory.getLogger(TestScanTable.class);
   private final String thriftUrl;
 
+  public static void main(String[] args) throws IOException {
+    TestScanTable scan = new TestScanTable("thrift://localhost:1260");
+    scan.checkIndependentDeleteFiles(TableIdentifier.of("xxx", "yyy", "zzz"));
+  }
+
   public TestScanTable(String thriftUrl) {
     this.thriftUrl = thriftUrl;
   }
 
-  public void testPlanFiles(TableIdentifier tableIdentifier) throws IOException {
+  public void checkIndependentDeleteFiles(TableIdentifier tableIdentifier) throws IOException {
     if (tableIdentifier == null) {
       return;
     }
