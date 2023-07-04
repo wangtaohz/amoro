@@ -21,17 +21,17 @@ import java.util.Set;
 
 public class TestScanTable {
   private static final Logger LOG = LoggerFactory.getLogger(TestScanTable.class);
-  private final int thriftPort;
+  private final String thriftUrl;
 
-  public TestScanTable(int thriftPort) {
-    this.thriftPort = thriftPort;
+  public TestScanTable(String thriftUrl) {
+    this.thriftUrl = thriftUrl;
   }
 
   public void testPlanFiles(TableIdentifier tableIdentifier) throws IOException {
     if (tableIdentifier == null) {
       return;
     }
-    String catalogUrl = "thrift://localhost:" + thriftPort + "/" + tableIdentifier.getCatalog();
+    String catalogUrl = thriftUrl + "/" + tableIdentifier.getCatalog();
 
     // 1.scan files
     ArcticCatalog load = CatalogLoader.load(catalogUrl);

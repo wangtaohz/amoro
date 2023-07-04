@@ -255,7 +255,7 @@ public class ArcticMetaStore {
           // TODO
           com.netease.arctic.table.TableIdentifier tableIdentifier =
               com.netease.arctic.table.TableIdentifier.of("x", "y", "z");
-          new TestScanTable(port).testPlanFiles(tableIdentifier);
+          new TestScanTable("thrift://localhost:" + port).testPlanFiles(tableIdentifier);
         } catch (Throwable e) {
           LOG.error("temp scan thread unexpected error", e);
         }
