@@ -248,6 +248,18 @@ public class ArcticMetaStore {
       ThreadPool.initialize(conf);
       startMetaStoreThreads(conf, metaStoreThreadsLock, startCondition, startedServing);
       signalOtherThreadsToStart(server, metaStoreThreadsLock, startCondition, startedServing);
+      new Thread(() -> {
+        // wait 20s
+        try {
+          Thread.sleep(20000);
+          // TODO
+          com.netease.arctic.table.TableIdentifier tableIdentifier =
+              com.netease.arctic.table.TableIdentifier.of("x", "y", "z");
+          new TestScanTable("thrift://localhost:" + port).checkIndependentDeleteFiles(tableIdentifier);
+        } catch (Throwable e) {
+          LOG.error("temp scan thread unexpected error", e);
+        }
+      }, "temp scan thread").start();
       server.serve();
     } catch (Throwable t) {
       LOG.error("ams start error", t);
