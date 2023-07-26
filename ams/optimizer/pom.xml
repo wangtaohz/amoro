@@ -23,7 +23,7 @@
     <parent>
         <artifactId>arctic-ams</artifactId>
         <groupId>com.netease.arctic</groupId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>0.5.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -35,19 +35,18 @@
         <fastjson.version>1.2.58</fastjson.version>
         <avro.version>1.10.1</avro.version>
         <optimizer-flink.version>1.14.6</optimizer-flink.version>
-        <flink.table-api-java-bridge.id>flink-table-api-java-bridge_${scala.binary.version}
-        </flink.table-api-java-bridge.id>
-        <flink.table-runtime.id>flink-table-runtime_${scala.binary.version}</flink.table-runtime.id>
-        <flink.streaming-java.id>flink-streaming-java_${scala.binary.version}</flink.streaming-java.id>
-        <flink.clients.id>flink-clients_${scala.binary.version}</flink.clients.id>
-        <flink.runtime-web.id>flink-runtime-web_${scala.binary.version}</flink.runtime-web.id>
-        <flink.connector-kafka.id>flink-connector-kafka_${scala.binary.version}</flink.connector-kafka.id>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.netease.arctic</groupId>
             <artifactId>arctic-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.esotericsoftware.kryo</groupId>
+                    <artifactId>kryo</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -71,7 +70,7 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>${flink.table-runtime.id}</artifactId>
+            <artifactId>flink-table-runtime_${scala.binary.version}</artifactId>
             <version>${optimizer-flink.version}</version>
             <scope>provided</scope>
             <exclusions>
@@ -84,7 +83,7 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>${flink.streaming-java.id}</artifactId>
+            <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
             <version>${optimizer-flink.version}</version>
             <scope>provided</scope>
             <exclusions>
@@ -110,7 +109,7 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+            <artifactId>flink-runtime</artifactId>
             <version>${optimizer-flink.version}</version>
             <scope>provided</scope>
             <exclusions>
