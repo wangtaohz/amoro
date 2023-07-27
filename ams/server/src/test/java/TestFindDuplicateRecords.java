@@ -18,28 +18,66 @@
 
 import com.netease.arctic.catalog.ArcticCatalog;
 import com.netease.arctic.catalog.CatalogLoader;
+import com.netease.arctic.io.DataTestHelpers;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableIdentifier;
+import org.apache.iceberg.ContentFile;
+import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.FileScanTask;
+import org.apache.iceberg.Table;
+import org.apache.iceberg.data.GenericRecord;
+import org.apache.iceberg.data.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestFindDuplicateRecords {
   private static final Logger LOG = LoggerFactory.getLogger(TestFindDuplicateRecords.class);
   private final String thriftUrl;
+  private final String CID_COLUMN = "id";
+  private final String HID_COLUMN = "name";
+  
+  private final Object CID_VALUE = 2003;
+  private final Object HID_VALUE = "hhh";
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     TestFindDuplicateRecords scan = new TestFindDuplicateRecords("thrift://localhost:1260");
-    scan.test(TableIdentifier.of("xxx", "yyy", "zzz"));
+    scan.test(TableIdentifier.of("local_iceberg", "db", "user10"));
   }
 
   public TestFindDuplicateRecords(String thriftUrl) {
     this.thriftUrl = thriftUrl;
   }
 
-  public void test(TableIdentifier tableIdentifier) {
+  public void test(TableIdentifier tableIdentifier) throws IOException {
     ArcticTable arcticTable = loadTable(tableIdentifier);
-    // TODO
-    arcticTable.asUnkeyedTable();
+    Table table = arcticTable.asUnkeyedTable();
+    List<ContentFile<?>> relatedFiles = findRelatedFiles(table, table.currentSnapshot().snapshotId());
+
+    System.out.println("===== related data files =====");
+    relatedFiles.forEach(f -> System.out.println(f.path()));
+  }
+
+  public List<ContentFile<?>> findRelatedFiles(Table table, long snapshotId) throws IOException {
+    List<ContentFile<?>> files = new ArrayList<>();
+    for (FileScanTask task : table.newScan().useSnapshot(snapshotId).planFiles()) {
+      List<Record> records =
+          DataTestHelpers.readDataFile(FileFormat.PARQUET, table.schema(), task.file().path().toString());
+      for (Record record : records) {
+        if (equals((GenericRecord) record)) {
+          files.add(task.file());
+          break;
+        }
+      }
+    }
+    return files;
+  }
+  
+  private boolean equals(GenericRecord record) {
+    return record.getField(CID_COLUMN).equals(CID_VALUE) && record.getField(HID_COLUMN).equals(HID_VALUE);
   }
 
   private ArcticTable loadTable(TableIdentifier tableIdentifier) {
