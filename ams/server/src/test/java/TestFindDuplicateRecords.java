@@ -22,6 +22,7 @@ import com.netease.arctic.io.DataTestHelpers;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableIdentifier;
 import org.apache.iceberg.ContentFile;
+import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.Table;
@@ -74,6 +75,21 @@ public class TestFindDuplicateRecords {
       }
     }
     return files;
+  }
+  
+  public static void planFiles(Table table, long snapshotId) {
+    String file1 = "xxx";
+    String file2 = "yyy";
+    for (FileScanTask task : table.newScan().useSnapshot(snapshotId).planFiles()) {
+      String path = task.file().path().toString();
+      if (path.equals(file1) || path.equals(file2)) {
+        System.out.println("===== related data files =====");
+        System.out.println(path);
+        for (DeleteFile delete : task.deletes()) {
+          System.out.println(delete.path());
+        }
+      }
+    }
   }
   
   private boolean equals(GenericRecord record) {
