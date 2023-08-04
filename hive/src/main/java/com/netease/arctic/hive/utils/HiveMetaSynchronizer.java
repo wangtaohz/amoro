@@ -243,7 +243,7 @@ public class HiveMetaSynchronizer {
         Partition hivePartition = hivePartitions.get(i);
         String hivePartitionName = hivePartitionNames.get(i);
         hiveDataFiles.addAll(HiveMetaSynchronizer.listHivePartitionFiles(
-            table, com.google.common.collect.Maps.newHashMap(), hivePartition.getSd().getLocation()));
+            table, Maps.newHashMap(), hivePartition.getSd().getLocation()));
         rewriteTableWithTag(table, hiveDataFiles, hivePartitionName);
       }
     } catch (TException | InterruptedException e) {
