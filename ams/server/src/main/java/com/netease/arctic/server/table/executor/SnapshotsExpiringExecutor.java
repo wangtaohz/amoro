@@ -32,6 +32,7 @@ import com.netease.arctic.table.KeyedTable;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.table.UnkeyedTable;
 import com.netease.arctic.utils.CompatiblePropertyUtil;
+import com.netease.arctic.utils.PuffinUtil;
 import com.netease.arctic.utils.TableFileUtil;
 import com.netease.arctic.utils.TablePropertyUtil;
 import org.apache.commons.collections.CollectionUtils;
@@ -280,7 +281,7 @@ public class SnapshotsExpiringExecutor extends BaseTableExecutor {
       return;
     }
 
-    StructLikeMap<Long> partitionMaxTransactionId = TablePropertyUtil.getPartitionOptimizedSequence(keyedTable);
+    StructLikeMap<Long> partitionMaxTransactionId = PuffinUtil.reader(keyedTable).readOptimizedSequence();
     if (MapUtils.isEmpty(partitionMaxTransactionId)) {
       LOG.info("table {} not contains max transaction id", keyedTable.id());
       return;

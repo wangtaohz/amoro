@@ -33,6 +33,9 @@ public class TableProperties {
 
   private TableProperties() {
   }
+  
+  public static final String TABLE_VERSION = "table.version";
+  public static final String TABLE_VERSION_DEFAULT = "0.5.0";
 
   public static final String TABLE_PARTITION_PROPERTIES = "table.partition-properties";
 
@@ -176,6 +179,27 @@ public class TableProperties {
       "|.*version-hint.text" + // version-hint.text
       "|.*v[0-9]+\\.metadata\\.json" + // v123.metadata.json
       "|.*[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}-m[0-9]+\\.avro"; // UUID-m0.avro
+
+  /**
+   * table tag management related properties
+   */
+  public static final String ENABLE_AUTO_CREATE_TAG = "auto-create-tag.enabled";
+  public static final boolean ENABLE_AUTO_CREATE_TAG_DEFAULT = false;
+
+  public static final String AUTO_CREATE_TAG_TRIGGER_DAY_TIME = "auto-create-tag.trigger.day.time";
+  public static final String AUTO_CREATE_TAG_TRIGGER_DAY_TIME_DEFAULT = "00:00"; // "HH:mm"
+
+  public static final String AUTO_CREATE_TAG_FORMAT = "auto-create-tag.tag-format";
+  public static final String AUTO_CREATE_TAG_FORMAT_DEFAULT = "'auto-tag-'yyyyMMdd";
+ 
+  public static final String AUTO_CREATE_TAG_BRANCH_FORMAT = "auto-create-tag.branch-format";
+  public static final String AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT = "'auto-branch-'yyyyMMdd";
+
+  public static final String AUTO_CREATE_TAG_KEEP_DAYS = "auto-create-tag.keep.days";
+  public static final int AUTO_CREATE_TAG_KEEP_DAYS_DEFAULT = -1;
+
+  public static final String AUTO_CREATE_TAG_OPTIMIZE_ENABLED = "auto-create-tag.optimizing.enabled";
+  public static final boolean AUTO_CREATE_TAG_OPTIMIZE_ENABLED_DEFAULT = false;
 
   /**
    * table write related properties
