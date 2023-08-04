@@ -145,6 +145,8 @@ public class ArcticHiveCatalog extends BasicArcticCatalog {
 
     boolean allowExistedHiveTable = false;
 
+    boolean createArcticTableWithTag = false;
+
     @Override
     public TableBuilder withPartitionSpec(PartitionSpec partitionSpec) {
       return super.withPartitionSpec(IcebergSchemaUtil.copyPartitionSpec(partitionSpec, schema));
@@ -173,6 +175,12 @@ public class ArcticHiveCatalog extends BasicArcticCatalog {
       } else {
         super.withProperty(key, value);
       }
+
+      if (key.equals(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION) &&
+          value.equals(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG)) {
+        createArcticTableWithTag = true;
+        super.withProperty(key, value);
+      }
       return this;
     }
 
@@ -198,10 +206,16 @@ public class ArcticHiveCatalog extends BasicArcticCatalog {
             throw new IllegalArgumentException("Table is already existed in hive meta store:" + identifier);
           }
         }
+
       } catch (org.apache.hadoop.hive.metastore.api.NoSuchObjectException noSuchObjectException) {
         // ignore this exception
       } catch (TException | InterruptedException e) {
         throw new RuntimeException("Failed to check table exist:" + identifier, e);
+      }
+      if (createArcticTableWithTag &&
+          (partitionSpec.isPartitioned() || !primaryKeySpec.primaryKeyExisted())) {
+        throw new IllegalArgumentException("Table with partition projection tag mode " +
+            "must be unpartitioned and have primary key");
       }
       if (!partitionSpec.isUnpartitioned()) {
         for (PartitionField partitionField : partitionSpec.fields()) {

@@ -81,6 +81,16 @@ public abstract class PartitionTransactionOperation implements PendingUpdate<Str
 
 
   public void commit() {
+    icebergCommit();
+  }
+
+  public void commitWithTag(String tagName) {
+    icebergCommit();
+    tx.table().refresh();
+    tx.manageSnapshots().createTag(tagName, tx.table().currentSnapshot().snapshotId()).commit();
+  }
+
+  private void icebergCommit() {
     if (this.skipEmptyCommit && isEmptyCommit()) {
       return;
     }
@@ -94,4 +104,5 @@ public abstract class PartitionTransactionOperation implements PendingUpdate<Str
 
     tx.commitTransaction();
   }
+
 }

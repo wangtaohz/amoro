@@ -22,6 +22,7 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.op.OverwriteHiveFiles;
 import com.netease.arctic.hive.table.SupportHive;
+import com.netease.arctic.op.KeyedPartitionRewrite;
 import com.netease.arctic.op.OverwriteBaseFiles;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableIdentifier;
@@ -51,6 +52,7 @@ import org.apache.iceberg.util.StructLikeMap;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -222,6 +224,33 @@ public class HiveMetaSynchronizer {
     }
   }
 
+  public static void syncHiveDataToArcticWithTag(SupportHive table, HMSClientPool hiveClient) {
+    UnkeyedTable baseStore = table.asKeyedTable().baseTable();
+    try {
+      // list all hive partitions.
+      List<Partition> hivePartitions = hiveClient.run(client -> client.listPartitions(table.id().getDatabase(),
+          table.id().getTableName(), Short.MAX_VALUE));
+      List<String> hivePartitionNames = hiveClient.run(client -> client.listPartitionNames(table.id().getDatabase(),
+          table.id().getTableName(), Short.MAX_VALUE));
+
+      if (hivePartitions.size() != hivePartitionNames.size()) {
+        throw new RuntimeException("Failed to get hive table:" + table.id() + ", " +
+            "hivePartitions.size() != hivePartitionNames.size()");
+      }
+      List<DataFile> hiveDataFiles = new ArrayList<>();
+
+      for (int i = 0; i < hivePartitions.size(); i++) {
+        Partition hivePartition = hivePartitions.get(i);
+        String hivePartitionName = hivePartitionNames.get(i);
+        hiveDataFiles.addAll(HiveMetaSynchronizer.listHivePartitionFiles(
+            table, com.google.common.collect.Maps.newHashMap(), hivePartition.getSd().getLocation()));
+        rewriteTableWithTag(table, hiveDataFiles, hivePartitionName);
+      }
+    } catch (TException | InterruptedException e) {
+      throw new RuntimeException("Failed to get hive table:" + table.id(), e);
+    }
+  }
+
   @VisibleForTesting
   static boolean partitionHasModified(
       UnkeyedTable arcticTable, Partition hivePartition,
@@ -318,6 +347,20 @@ public class HiveMetaSynchronizer {
         filesToDelete.forEach(overwriteFiles::deleteFile);
         filesToAdd.forEach(overwriteFiles::addFile);
         overwriteFiles.commit();
+      }
+    }
+  }
+
+  private static void rewriteTableWithTag(ArcticTable table, List<DataFile> filesToAdd, String partitionName) {
+    if (filesToAdd.size() > 0) {
+      LOG.info("Table {} sync hive data change to arctic, add files {}", table.id(),
+          filesToAdd.stream().map(DataFile::path).collect(Collectors.toList()));
+      if (table.isKeyedTable()) {
+        long txId = table.asKeyedTable().beginTransaction(null);
+        KeyedPartitionRewrite rewritePartitions  = (KeyedPartitionRewrite)table.asKeyedTable().newRewritePartitions();
+        filesToAdd.forEach(rewritePartitions::addDataFile);
+        rewritePartitions.updateOptimizedSequenceDynamically(txId);
+        rewritePartitions.commitWithTag(partitionName);
       }
     }
   }

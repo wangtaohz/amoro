@@ -28,6 +28,7 @@ public class HiveTableProperties {
   static {
     EXPOSED.add(HiveTableProperties.AUTO_SYNC_HIVE_DATA_WRITE);
     EXPOSED.add(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE);
+    EXPOSED.add(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION);
   }
 
   public static final String ARCTIC_TABLE_FLAG = "arctic.enabled";
@@ -37,6 +38,18 @@ public class HiveTableProperties {
   public static final String ARCTIC_TABLE_PRIMARY_KEYS = "arctic.table.primary-keys";
   // save the root location of arctic table.
   public static final String ARCTIC_TABLE_ROOT_LOCATION = "arctic.table.root-location";
+
+  public static final String BASE_HIVE_PARTITION_PROJECTION = "base.hive.partition-projection";
+
+  public static final String BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION = "partition";
+  public static final String BASE_HIVE_PARTITION_PROJECTION_MODE_TAG = "tag";
+  public static final String BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT =
+      BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION;
+
+  public static final String TAG_DEFAULT_COLUMN_NAME = "date";
+
+  public static final String HIVE_PARTITION_FORMAT = "hive.partition-format";
+  public static final String HIVE_PARTITION_FORMAT_DEFAULT = "yyyy-MM-dd";
 
   public static final String PARTITION_PROPERTIES_KEY_HIVE_LOCATION = "hive-location";
 
@@ -54,6 +67,8 @@ public class HiveTableProperties {
   public static final long REFRESH_HIVE_INTERVAL_DEFAULT = -1L;
 
   public static final String ALLOW_HIVE_TABLE_EXISTED = "allow-hive-table-existed";
+
+  public static final String CREATE_ARCTIC_TABLE_WITH_TAG = "create-arctic-table-with-tag";
 
   public static final String WATERMARK_HIVE = "watermark.hive";
 

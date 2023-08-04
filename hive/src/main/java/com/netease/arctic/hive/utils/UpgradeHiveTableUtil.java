@@ -39,14 +39,19 @@ import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.relocated.com.google.common.annotations.VisibleForTesting;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class UpgradeHiveTableUtil {
 
@@ -68,6 +73,23 @@ public class UpgradeHiveTableUtil {
     if (!formatCheck(arcticHiveCatalog.getHMSClient(), tableIdentifier)) {
       throw new IllegalArgumentException("Only support storage format is parquet");
     }
+
+    switch (CompatibleHivePropertyUtil.propertyAsString(properties, HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT)) {
+      case HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION:
+        upgradeToPartitionHiveTable(arcticHiveCatalog, tableIdentifier, pkList, properties);
+        break;
+      case HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG:
+        upgradeToTagHiveTable(arcticHiveCatalog, tableIdentifier, pkList, properties);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private static void upgradeToPartitionHiveTable(ArcticHiveCatalog arcticHiveCatalog, TableIdentifier tableIdentifier,
+                                                  List<String> pkList, Map<String, String> properties)
+      throws Exception {
     boolean upgradeHive = false;
     try {
       Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), tableIdentifier);
@@ -89,7 +111,7 @@ public class UpgradeHiveTableUtil {
           .withProperty(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED, "true")
           .create();
       upgradeHive = true;
-      UpgradeHiveTableUtil.hiveDataMigration((SupportHive) arcticTable, arcticHiveCatalog, tableIdentifier);
+      UpgradeHiveTableUtil.hiveDataMigration((SupportHive) arcticTable, arcticHiveCatalog);
     } catch (Throwable t) {
       if (upgradeHive) {
         arcticHiveCatalog.dropTableButNotDropHiveTable(tableIdentifier);
@@ -98,11 +120,49 @@ public class UpgradeHiveTableUtil {
     }
   }
 
-  private static void hiveDataMigration(
-      SupportHive arcticTable, ArcticHiveCatalog arcticHiveCatalog,
-      TableIdentifier tableIdentifier)
+  private static void upgradeToTagHiveTable(ArcticHiveCatalog arcticHiveCatalog, TableIdentifier tableIdentifier,
+                                            List<String> pkList, Map<String, String> properties) throws Exception {
+    if (!partitionFormatCheck(arcticHiveCatalog.getHMSClient(), tableIdentifier, properties)) {
+      throw new IllegalArgumentException("Hive Table " + tableIdentifier + " format is not supported, " +
+          "please check if your Hive Table partition key is greater than 1, " +
+          "and if the Hive Table partition name meets the requirements " +
+          CompatibleHivePropertyUtil.propertyAsString(properties, HiveTableProperties.HIVE_PARTITION_FORMAT,
+              HiveTableProperties.HIVE_PARTITION_FORMAT_DEFAULT) + ".");
+    }
+
+    if (pkList == null || pkList.isEmpty()) {
+      throw new IllegalArgumentException("Please set the primary key of the table you want to add tag " +
+          tableIdentifier + ".");
+    }
+
+    boolean upgradeHive = false;
+
+    try {
+      Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), tableIdentifier);
+
+      Schema schema = HiveSchemaUtil.convertHiveSchemaToIcebergSchema(hiveTable, pkList);
+
+      PrimaryKeySpec.Builder primaryKeyBuilder = PrimaryKeySpec.builderFor(schema);
+      pkList.stream().forEach(p -> primaryKeyBuilder.addColumn(p));
+
+      ArcticTable arcticTable = arcticHiveCatalog.newTableBuilder(tableIdentifier, schema)
+          .withProperties(properties)
+          .withPrimaryKeySpec(primaryKeyBuilder.build())
+          .withProperty(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED, "true")
+          .create();
+      upgradeHive = true;
+      UpgradeHiveTableUtil.hiveDataMigrationWithTag((SupportHive) arcticTable, arcticHiveCatalog);
+    } catch (Throwable t) {
+      if (upgradeHive) {
+        arcticHiveCatalog.dropTableButNotDropHiveTable(tableIdentifier);
+      }
+      throw t;
+    }
+  }
+
+  private static void hiveDataMigration(SupportHive arcticTable, ArcticHiveCatalog arcticHiveCatalog)
       throws Exception {
-    Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), tableIdentifier);
+    Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), arcticTable.id());
     String hiveDataLocation = HiveTableUtil.hiveRootLocation(hiveTable.getSd().getLocation());
     ArcticHadoopFileIO io = arcticTable.io();
     io.makeDirectories(hiveDataLocation);
@@ -125,9 +185,9 @@ public class UpgradeHiveTableUtil {
       }
     } else {
       List<String> partitions =
-          HivePartitionUtil.getHivePartitionNames(arcticHiveCatalog.getHMSClient(), tableIdentifier);
+          HivePartitionUtil.getHivePartitionNames(arcticHiveCatalog.getHMSClient(), arcticTable.id());
       List<String> partitionLocations =
-          HivePartitionUtil.getHivePartitionLocations(arcticHiveCatalog.getHMSClient(), tableIdentifier);
+          HivePartitionUtil.getHivePartitionLocations(arcticHiveCatalog.getHMSClient(), arcticTable.id());
       for (int i = 0; i < partitionLocations.size(); i++) {
         String partition = partitions.get(i);
         String oldLocation = partitionLocations.get(i);
@@ -139,12 +199,18 @@ public class UpgradeHiveTableUtil {
             io.asFileSystemIO().rename(p.location(), newLocation);
           }
         });
-        HivePartitionUtil.alterPartition(arcticHiveCatalog.getHMSClient(), tableIdentifier, partition, newLocation);
+        HivePartitionUtil.alterPartition(arcticHiveCatalog.getHMSClient(), arcticTable.id(), partition, newLocation);
       }
     }
     HiveMetaSynchronizer.syncHiveDataToArctic(arcticTable, arcticHiveCatalog.getHMSClient());
-    hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), tableIdentifier);
+    hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), arcticTable.id());
     fillPartitionProperties(arcticTable, arcticHiveCatalog, hiveTable);
+  }
+
+  private static void hiveDataMigrationWithTag(SupportHive arcticTable, ArcticHiveCatalog arcticHiveCatalog)
+      throws TException, InterruptedException {
+    Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), arcticTable.id());
+    HiveMetaSynchronizer.syncHiveDataToArcticWithTag(arcticTable, arcticHiveCatalog.getHMSClient());
   }
 
   /**
@@ -179,6 +245,36 @@ public class UpgradeHiveTableUtil {
     } catch (Exception e) {
       throw new IOException(e);
     }
+    return isSupport.get();
+  }
+
+  private static boolean partitionFormatCheck(HMSClientPool hiveClient, TableIdentifier tableIdentifier,
+                                              Map<String, String> properties) throws TException, InterruptedException {
+    String dateFormat =  CompatibleHivePropertyUtil.propertyAsString(properties,
+        HiveTableProperties.HIVE_PARTITION_FORMAT,
+        HiveTableProperties.HIVE_PARTITION_FORMAT_DEFAULT);
+    AtomicBoolean isSupport = new AtomicBoolean(true);
+
+    hiveClient.run(client -> {
+      Table hiveTable = HiveTableUtil.loadHmsTable(hiveClient, tableIdentifier);
+
+      if (!hiveTable.isSetPartitionKeys() || hiveTable.getPartitionKeys().size() > 1) {
+        isSupport.set(false);
+        return null;
+      }
+      List<String> partitionNames = client
+          .listPartitions(tableIdentifier.getDatabase(), tableIdentifier.getTableName(), (short) -1)
+          .stream()
+          .map(p -> p.getValues().get(0).substring(
+              p.getValues().get(0).indexOf("=") + 1)).collect(Collectors.toList());
+      for (String partitionName : partitionNames) {
+        if (!isValidDate(partitionName, dateFormat)) {
+          isSupport.set(false);
+          break;
+        }
+      }
+      return null;
+    });
     return isSupport.get();
   }
 
@@ -233,5 +329,34 @@ public class UpgradeHiveTableUtil {
     return partitionProperties != null &&
         partitionProperties.containsKey(HiveTableProperties.PARTITION_PROPERTIES_KEY_HIVE_LOCATION) &&
         partitionProperties.containsKey(HiveTableProperties.PARTITION_PROPERTIES_KEY_TRANSIENT_TIME);
+  }
+
+  private static boolean isValidDate(String dateString, String dateFormat) {
+    SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+    sdf.setLenient(false);
+
+    try {
+      Date date = sdf.parse(dateString);
+
+      if (date.getHours() != 0 || date.getMinutes() != 0 || date.getSeconds() != 0) {
+        return false;
+      }
+
+      String pattern = sdf.toPattern();
+      if (!pattern.contains("d") && !pattern.contains("dd")) {
+        return false;
+      }
+
+      int yearIndex = pattern.indexOf('y');
+      int monthIndex = pattern.indexOf('M');
+
+      if (yearIndex == -1 || (monthIndex == -1 && monthIndex != yearIndex + 1)) {
+        return false;
+      }
+
+      return true;
+    } catch (ParseException e) {
+      return false;
+    }
   }
 }

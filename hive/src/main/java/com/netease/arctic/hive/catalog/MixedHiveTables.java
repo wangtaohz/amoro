@@ -21,6 +21,7 @@ import com.netease.arctic.table.TableIdentifier;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.utils.CatalogUtil;
 import org.apache.hadoop.hive.metastore.TableType;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
@@ -31,7 +32,9 @@ import org.apache.iceberg.mapping.NameMappingParser;
 import org.apache.iceberg.util.PropertyUtil;
 import org.apache.thrift.TException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -105,6 +108,7 @@ public class MixedHiveTables extends MixedTables {
   protected KeyedTable createKeyedTable(TableMeta tableMeta, Schema schema, PrimaryKeySpec primaryKeySpec,
       PartitionSpec partitionSpec) {
     boolean allowExistedHiveTable = allowExistedHiveTable(tableMeta);
+    boolean createArcticTableWithTag = createArcticTableWithTag(tableMeta);
     TableIdentifier tableIdentifier = TableIdentifier.of(tableMeta.getTableIdentifier());
     String baseLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_BASE);
     String changeLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_CHANGE);
@@ -119,9 +123,10 @@ public class MixedHiveTables extends MixedTables {
     ArcticHadoopFileIO fileIO = ArcticFileIOs.buildRecoverableHadoopFileIO(
         tableIdentifier, tableLocation, tableMeta.getProperties(),
         tableMetaStore, catalogMeta.getCatalogProperties());
+    Schema finalSchema = schema;
     Table baseIcebergTable = tableMetaStore.doAs(() -> {
       try {
-        Table createTable = tables.create(schema, partitionSpec, tableMeta.getProperties(), baseLocation);
+        Table createTable = tables.create(finalSchema, partitionSpec, tableMeta.getProperties(), baseLocation);
         createTable.updateProperties().set(org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING,
             NameMappingParser.toJson(MappingUtil.create(createTable.schema()))).commit();
         return createTable;
@@ -136,7 +141,7 @@ public class MixedHiveTables extends MixedTables {
 
     Table changeIcebergTable = tableMetaStore.doAs(() -> {
       try {
-        Table createTable = tables.create(schema, partitionSpec, tableMeta.getProperties(), changeLocation);
+        Table createTable = tables.create(finalSchema, partitionSpec, tableMeta.getProperties(), changeLocation);
         createTable.updateProperties().set(org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING,
             NameMappingParser.toJson(MappingUtil.create(createTable.schema()))).commit();
         return createTable;
@@ -160,8 +165,10 @@ public class MixedHiveTables extends MixedTables {
           hiveTable.setParameters(hiveParameters);
           client.alterTable(tableIdentifier.getDatabase(), tableIdentifier.getTableName(), hiveTable);
         } else {
-          org.apache.hadoop.hive.metastore.api.Table hiveTable = newHiveTable(tableMeta, schema, partitionSpec);
-          hiveTable.setSd(HiveTableUtil.storageDescriptor(schema, partitionSpec, hiveLocation,
+          org.apache.hadoop.hive.metastore.api.Table hiveTable =
+              newHiveTable(tableMeta, finalSchema, partitionSpec, createArcticTableWithTag);
+
+          hiveTable.setSd(HiveTableUtil.storageDescriptor(finalSchema, partitionSpec, hiveLocation,
               FileFormat.valueOf(PropertyUtil.propertyAsString(metaProperties, TableProperties.DEFAULT_FILE_FORMAT,
                   TableProperties.DEFAULT_FILE_FORMAT_DEFAULT).toUpperCase(Locale.ENGLISH))));
           setProToHive(hiveTable, primaryKeySpec, tableMeta);
@@ -180,6 +187,7 @@ public class MixedHiveTables extends MixedTables {
   protected UnkeyedHiveTable createUnKeyedTable(TableMeta tableMeta, Schema schema, PrimaryKeySpec primaryKeySpec,
       PartitionSpec partitionSpec) {
     boolean allowExistedHiveTable = allowExistedHiveTable(tableMeta);
+    boolean createArcticTableWithTag = createArcticTableWithTag(tableMeta);
     TableIdentifier tableIdentifier = TableIdentifier.of(tableMeta.getTableIdentifier());
     String baseLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_BASE);
     String tableLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_TABLE);
@@ -207,7 +215,8 @@ public class MixedHiveTables extends MixedTables {
           hiveTable.setParameters(hiveParameters);
           client.alterTable(tableIdentifier.getDatabase(), tableIdentifier.getTableName(), hiveTable);
         } else {
-          org.apache.hadoop.hive.metastore.api.Table hiveTable = newHiveTable(tableMeta, schema, partitionSpec);
+          org.apache.hadoop.hive.metastore.api.Table hiveTable =
+              newHiveTable(tableMeta, schema, partitionSpec, createArcticTableWithTag);
           hiveTable.setSd(HiveTableUtil.storageDescriptor(schema, partitionSpec, hiveLocation,
               FileFormat.valueOf(PropertyUtil.propertyAsString(tableMeta.getProperties(),
                   TableProperties.BASE_FILE_FORMAT,
@@ -264,7 +273,7 @@ public class MixedHiveTables extends MixedTables {
   }
 
   private org.apache.hadoop.hive.metastore.api.Table newHiveTable(TableMeta meta, Schema schema,
-      PartitionSpec partitionSpec) {
+      PartitionSpec partitionSpec, boolean withExtraPartitionColumn) {
     final long currentTimeMillis = System.currentTimeMillis();
 
     org.apache.hadoop.hive.metastore.api.Table newTable = new org.apache.hadoop.hive.metastore.api.Table(
@@ -281,6 +290,13 @@ public class MixedHiveTables extends MixedTables {
         null,
         TableType.EXTERNAL_TABLE.toString());
 
+    if (withExtraPartitionColumn) {
+      List<FieldSchema> partitionKey = new ArrayList<>();
+      partitionKey.add(new FieldSchema(HiveTableProperties.TAG_DEFAULT_COLUMN_NAME,
+          "string","Auto-generated partition keys"));
+      newTable.setPartitionKeys(partitionKey);
+    }
+
     newTable.getParameters().put("EXTERNAL", "TRUE"); // using the external table type also requires this
     return newTable;
   }
@@ -292,8 +308,15 @@ public class MixedHiveTables extends MixedTables {
   }
 
   private boolean allowExistedHiveTable(TableMeta tableMeta) {
-    String allowStringValue = tableMeta.getProperties().remove(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED);
+    String allowStringValue =
+        tableMeta.getProperties().remove(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED);
     return Boolean.parseBoolean(allowStringValue);
+  }
+
+  private boolean createArcticTableWithTag(TableMeta tableMeta) {
+    String createArcticTableWithTag =
+        tableMeta.getProperties().remove(HiveTableProperties.CREATE_ARCTIC_TABLE_WITH_TAG);
+    return Boolean.parseBoolean(createArcticTableWithTag);
   }
 
   @Override
