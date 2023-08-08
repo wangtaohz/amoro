@@ -207,9 +207,7 @@ public class UpgradeHiveTableUtil {
     fillPartitionProperties(arcticTable, arcticHiveCatalog, hiveTable);
   }
 
-  private static void hiveDataMigrationWithTag(SupportHive arcticTable, ArcticHiveCatalog arcticHiveCatalog)
-      throws TException, InterruptedException {
-    Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), arcticTable.id());
+  private static void hiveDataMigrationWithTag(SupportHive arcticTable, ArcticHiveCatalog arcticHiveCatalog) {
     HiveMetaSynchronizer.syncHiveDataToArcticWithTag(arcticTable, arcticHiveCatalog.getHMSClient());
   }
 
