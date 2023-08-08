@@ -24,6 +24,7 @@ import com.netease.arctic.hive.op.OverwriteHiveFiles;
 import com.netease.arctic.hive.table.SupportHive;
 import com.netease.arctic.op.KeyedPartitionRewrite;
 import com.netease.arctic.op.OverwriteBaseFiles;
+import com.netease.arctic.op.RewritePartitions;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableIdentifier;
 import com.netease.arctic.table.TableProperties;
@@ -225,7 +226,6 @@ public class HiveMetaSynchronizer {
   }
 
   public static void syncHiveDataToArcticWithTag(SupportHive table, HMSClientPool hiveClient) {
-    UnkeyedTable baseStore = table.asKeyedTable().baseTable();
     try {
       // list all hive partitions.
       List<Partition> hivePartitions = hiveClient.run(client -> client.listPartitions(table.id().getDatabase(),
@@ -357,10 +357,12 @@ public class HiveMetaSynchronizer {
           filesToAdd.stream().map(DataFile::path).collect(Collectors.toList()));
       if (table.isKeyedTable()) {
         long txId = table.asKeyedTable().beginTransaction(null);
-        KeyedPartitionRewrite rewritePartitions  = (KeyedPartitionRewrite)table.asKeyedTable().newRewritePartitions();
+        RewritePartitions rewritePartitions = table.asKeyedTable().newRewritePartitions();
         filesToAdd.forEach(rewritePartitions::addDataFile);
         rewritePartitions.updateOptimizedSequenceDynamically(txId);
-        rewritePartitions.commitWithTag(partitionName);
+        rewritePartitions.commit();
+      } else {
+        throw new RuntimeException("rewriteTableWithTag only support unkeyed table");
       }
     }
   }

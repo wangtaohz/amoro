@@ -74,8 +74,11 @@ public class UpgradeHiveTableUtil {
       throw new IllegalArgumentException("Only support storage format is parquet");
     }
 
-    switch (CompatibleHivePropertyUtil.propertyAsString(properties, HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
-        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT)) {
+    String baseHivePartitionProjectionMode = CompatibleHivePropertyUtil.propertyAsString(properties,
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT);
+
+    switch (baseHivePartitionProjectionMode) {
       case HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION:
         upgradeToPartitionHiveTable(arcticHiveCatalog, tableIdentifier, pkList, properties);
         break;
@@ -83,7 +86,7 @@ public class UpgradeHiveTableUtil {
         upgradeToTagHiveTable(arcticHiveCatalog, tableIdentifier, pkList, properties);
         break;
       default:
-        break;
+        throw new IllegalStateException("Unsupported hive table projection mode " + baseHivePartitionProjectionMode);
     }
   }
 
