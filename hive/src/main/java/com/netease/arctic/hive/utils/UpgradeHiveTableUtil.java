@@ -114,7 +114,7 @@ public class UpgradeHiveTableUtil {
       UpgradeHiveTableUtil.hiveDataMigration((SupportHive) arcticTable, arcticHiveCatalog);
     } catch (Throwable t) {
       if (upgradeHive) {
-        arcticHiveCatalog.dropTableButNotDropHiveTable(tableIdentifier);
+        arcticHiveCatalog.dropTable(tableIdentifier, false);
       }
       throw t;
     }
@@ -154,7 +154,7 @@ public class UpgradeHiveTableUtil {
       UpgradeHiveTableUtil.hiveDataMigrationWithTag((SupportHive) arcticTable, arcticHiveCatalog);
     } catch (Throwable t) {
       if (upgradeHive) {
-        arcticHiveCatalog.dropTableButNotDropHiveTable(tableIdentifier);
+        arcticHiveCatalog.dropTable(tableIdentifier, false);
       }
       throw t;
     }
