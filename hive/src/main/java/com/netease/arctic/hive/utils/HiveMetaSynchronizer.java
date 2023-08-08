@@ -22,7 +22,6 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.op.OverwriteHiveFiles;
 import com.netease.arctic.hive.table.SupportHive;
-import com.netease.arctic.op.KeyedPartitionRewrite;
 import com.netease.arctic.op.OverwriteBaseFiles;
 import com.netease.arctic.op.RewritePartitions;
 import com.netease.arctic.table.ArcticTable;
