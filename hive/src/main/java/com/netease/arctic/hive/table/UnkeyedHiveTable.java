@@ -27,6 +27,7 @@ import com.netease.arctic.hive.op.HiveSchemaUpdate;
 import com.netease.arctic.hive.op.OverwriteHiveFiles;
 import com.netease.arctic.hive.op.ReplaceHivePartitions;
 import com.netease.arctic.hive.op.RewriteHiveFiles;
+import com.netease.arctic.hive.utils.CompatibleHivePropertyUtil;
 import com.netease.arctic.hive.utils.HiveMetaSynchronizer;
 import com.netease.arctic.hive.utils.HiveTableUtil;
 import com.netease.arctic.io.ArcticHadoopFileIO;
@@ -156,7 +157,14 @@ public class UnkeyedHiveTable extends BasicUnkeyedTable implements BaseTable, Su
   @Override
   public Transaction newTransaction() {
     Transaction transaction = super.newTransaction();
-    return new HiveOperationTransaction(this, transaction, hiveClient);
+    if (CompatibleHivePropertyUtil.propertyAsString(this.properties(),
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT)
+        .equals(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG)) {
+      return transaction;
+    } else {
+      return new HiveOperationTransaction(this, transaction, hiveClient);
+    }
   }
 
   @Override

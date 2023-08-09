@@ -39,6 +39,7 @@ import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.relocated.com.google.common.annotations.VisibleForTesting;
+import org.apache.iceberg.types.Types;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +47,12 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -142,8 +146,19 @@ public class UpgradeHiveTableUtil {
 
     try {
       Table hiveTable = HiveTableUtil.loadHmsTable(arcticHiveCatalog.getHMSClient(), tableIdentifier);
-
-      Schema schema = HiveSchemaUtil.convertHiveSchemaToIcebergSchema(hiveTable, pkList);
+      List<FieldSchema> hiveSchema = hiveTable.getSd().getCols();
+      hiveSchema.removeAll(hiveTable.getPartitionKeys());
+      Set<String> pkSet = new HashSet<>(pkList);
+      Schema schema = org.apache.iceberg.hive.HiveSchemaUtil.convert(hiveSchema, true);
+      List<Types.NestedField> columnsWithPk = new ArrayList<>();
+      schema.columns().forEach(nestedField -> {
+        if (pkSet.contains(nestedField.name())) {
+          columnsWithPk.add(nestedField.asRequired());
+        } else {
+          columnsWithPk.add(nestedField);
+        }
+      });
+      schema = new Schema(columnsWithPk);
 
       PrimaryKeySpec.Builder primaryKeyBuilder = PrimaryKeySpec.builderFor(schema);
       pkList.stream().forEach(p -> primaryKeyBuilder.addColumn(p));
@@ -151,6 +166,7 @@ public class UpgradeHiveTableUtil {
       ArcticTable arcticTable = arcticHiveCatalog.newTableBuilder(tableIdentifier, schema)
           .withProperties(properties)
           .withPrimaryKeySpec(primaryKeyBuilder.build())
+          .withProperty(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE, "false")
           .withProperty(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED, "true")
           .create();
       upgradeHive = true;

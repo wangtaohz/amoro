@@ -236,13 +236,13 @@ public class HiveMetaSynchronizer {
         throw new RuntimeException("Failed to get hive table:" + table.id() + ", " +
             "hivePartitions.size() != hivePartitionNames.size()");
       }
-      List<DataFile> hiveDataFiles = new ArrayList<>();
+
 
       for (int i = 0; i < hivePartitions.size(); i++) {
         Partition hivePartition = hivePartitions.get(i);
         String hivePartitionName = hivePartitionNames.get(i);
-        hiveDataFiles.addAll(HiveMetaSynchronizer.listHivePartitionFiles(
-            table, Maps.newHashMap(), hivePartition.getSd().getLocation()));
+        List<DataFile> hiveDataFiles = HiveMetaSynchronizer.listHivePartitionFiles(
+            table, Maps.newHashMap(), hivePartition.getSd().getLocation());
         rewriteTableWithTag(table, hiveDataFiles, hivePartitionName);
       }
     } catch (TException | InterruptedException e) {
@@ -360,6 +360,8 @@ public class HiveMetaSynchronizer {
         filesToAdd.forEach(rewritePartitions::addDataFile);
         rewritePartitions.updateOptimizedSequenceDynamically(txId);
         rewritePartitions.commit();
+        table.asKeyedTable().baseTable().manageSnapshots()
+            .createTag(partitionName, table.asKeyedTable().baseTable().currentSnapshot().snapshotId()).commit();
       } else {
         throw new RuntimeException("rewriteTableWithTag only support unkeyed table");
       }

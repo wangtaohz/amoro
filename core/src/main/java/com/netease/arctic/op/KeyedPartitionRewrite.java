@@ -90,9 +90,4 @@ public class KeyedPartitionRewrite extends PartitionTransactionOperation impleme
   protected boolean isEmptyCommit() {
     return this.addFiles.isEmpty();
   }
-
-  @Override
-  public Object updateEvent() {
-    return this.updateEvent();
-  }
 }
