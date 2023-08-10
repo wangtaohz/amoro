@@ -67,24 +67,4 @@ public class TestArcticHiveCatalog extends TestBasicArcticCatalog {
           true, true);
     }
   }
-
-  @Test
-  public void testDropTableButNotDropHiveTable() throws MetaException {
-    if (getCatalog() instanceof ArcticHiveCatalog) {
-      getCatalog().createDatabase(TableTestHelper.TEST_DB_NAME);
-      createTestTable();
-      getCatalog().dropTable(TableIdentifier.of(getCatalog().name(),
-          TableTestHelper.TEST_DB_NAME, TableTestHelper.TEST_TABLE_NAME), false);
-      Assert.assertTrue(TEST_HMS.getHiveClient().getAllTables(TableTestHelper.TEST_DB_NAME)
-          .contains(TableTestHelper.TEST_TABLE_NAME));
-    }
-  }
-
-  @After
-  public void cleanUp() throws TException {
-    if (getCatalog() instanceof ArcticHiveCatalog) {
-      TEST_HMS.getHiveClient().dropTable(TableTestHelper.TEST_DB_NAME, TableTestHelper.TEST_TABLE_NAME,
-          true, true);
-    }
-  }
 }
