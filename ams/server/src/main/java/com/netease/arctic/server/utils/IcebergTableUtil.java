@@ -23,6 +23,7 @@ import com.netease.arctic.ams.api.CatalogMeta;
 import com.netease.arctic.ams.api.TableFormat;
 import com.netease.arctic.ams.api.TableMeta;
 import com.netease.arctic.ams.api.properties.MetaTableProperties;
+import com.netease.arctic.hive.utils.TableTypeUtil;
 import com.netease.arctic.scan.TableEntriesScan;
 import com.netease.arctic.server.ArcticServiceConstants;
 import com.netease.arctic.server.table.BasicTableSnapshot;
@@ -30,6 +31,7 @@ import com.netease.arctic.server.table.KeyedTableSnapshot;
 import com.netease.arctic.server.table.ServerTableIdentifier;
 import com.netease.arctic.server.table.TableRuntime;
 import com.netease.arctic.server.table.TableSnapshot;
+import com.netease.arctic.server.table.executor.TagsCheckingExecutor;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableMetaStore;
 import com.netease.arctic.table.UnkeyedTable;
@@ -43,6 +45,7 @@ import org.apache.iceberg.DeleteFile;
 import org.apache.iceberg.FileContent;
 import org.apache.iceberg.FileScanTask;
 import org.apache.iceberg.Snapshot;
+import org.apache.iceberg.Table;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
 import org.apache.iceberg.TableProperties;
@@ -51,12 +54,14 @@ import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.io.CloseableIterable;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.OutputFile;
+import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.util.LocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -82,13 +87,46 @@ public class IcebergTableUtil {
     }
   }
 
-  public static TableSnapshot getSnapshot(ArcticTable arcticTable, TableRuntime tableRuntime) {
+  public static TableSnapshot getOptimizedSnapshot(ArcticTable arcticTable, TableRuntime tableRuntime) {
     tableRuntime.refresh(arcticTable);
     if (arcticTable.isUnkeyedTable()) {
+      // TODO support optimizing tag later
       return new BasicTableSnapshot(tableRuntime.getCurrentSnapshotId());
     } else {
+      if (tableRuntime.getOptimizingConfig().isOptimizingTag()) {
+        Preconditions.checkArgument(TableTypeUtil.isFullSnapshotHiveTable(arcticTable),
+            "Only full snapshot hive table support optimizing tag");
+        String todayBranchToOptimize = findDayBranchToOptimize(LocalDate.now(), arcticTable);
+        if (todayBranchToOptimize != null) {
+          Snapshot snapshot = arcticTable.asKeyedTable().baseTable().snapshot(todayBranchToOptimize);
+          Snapshot changeSnapshot = arcticTable.asKeyedTable().changeTable().snapshot(todayBranchToOptimize);
+          return new KeyedTableSnapshot(snapshot.snapshotId(),
+              changeSnapshot == null ? ArcticServiceConstants.INVALID_SNAPSHOT_ID : changeSnapshot.snapshotId(),
+              todayBranchToOptimize);
+        }
+      }
       return new KeyedTableSnapshot(tableRuntime.getCurrentSnapshotId(),
           tableRuntime.getCurrentChangeSnapshotId());
+    }
+  }
+
+  private static String findDayBranchToOptimize(LocalDate now, ArcticTable arcticTable) {
+    TagsCheckingExecutor.TagConfig tagConfig =
+        TagsCheckingExecutor.TagConfig.fromTableProperties(arcticTable.properties());
+    String todayTag = TagUtil.getDayRefName(now, tagConfig.getTagFormat());
+    String todayBranch = TagUtil.getDayRefName(now, tagConfig.getBranchFormat());
+    Table table;
+    if (arcticTable.isUnkeyedTable()) {
+      table = arcticTable.asUnkeyedTable();
+    } else {
+      table = arcticTable.asKeyedTable().baseTable();
+    }
+    Set<String> refs = table.refs().keySet();
+    // find today branch, but not today tag
+    if (refs.contains(todayBranch) && !refs.contains(todayTag)) {
+      return todayBranch;
+    } else {
+      return null;
     }
   }
 

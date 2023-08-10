@@ -20,6 +20,7 @@ package com.netease.arctic.server.table.executor;
 
 import com.netease.arctic.server.table.TableManager;
 import com.netease.arctic.server.table.TableRuntime;
+import com.netease.arctic.server.utils.TagUtil;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.BaseTable;
 import com.netease.arctic.table.ChangeTable;
@@ -206,13 +207,11 @@ public class TagsCheckingExecutor extends BaseTableExecutor {
     }
 
     private String getTodayTagName() {
-      String tagFormat = tagConfig.getTagFormat();
-      return now.minusDays(1).format(DateTimeFormatter.ofPattern(tagFormat));
+      return TagUtil.getDayRefName(now, tagConfig.getTagFormat());
     }
 
     private String getTodayBranchName() {
-      String branchFormat = tagConfig.getBranchFormat();
-      return now.minusDays(1).format(DateTimeFormatter.ofPattern(branchFormat));
+      return TagUtil.getDayRefName(now, tagConfig.getBranchFormat());
     }
 
     private long getTagTriggerTime() {
@@ -240,7 +239,7 @@ public class TagsCheckingExecutor extends BaseTableExecutor {
     }
   }
 
-  static class TagConfig {
+  public static class TagConfig {
     private boolean autoCreateTag;
     private String tagFormat;
     private String branchFormat;

@@ -5,7 +5,6 @@ import com.google.common.base.Objects;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.utils.CompatiblePropertyUtil;
-import org.apache.iceberg.relocated.com.google.common.base.MoreObjects;
 import org.apache.iceberg.util.PropertyUtil;
 
 import java.util.Map;
@@ -63,6 +62,8 @@ public class OptimizingConfig {
 
   //base.hive.refresh-interval
   private long hiveRefreshInterval;
+  
+  private boolean optimizingTag;
 
   public OptimizingConfig() {
   }
@@ -219,6 +220,15 @@ public class OptimizingConfig {
     return this;
   }
 
+  public boolean isOptimizingTag() {
+    return optimizingTag;
+  }
+
+  public OptimizingConfig setOptimizingTag(boolean optimizingTag) {
+    this.optimizingTag = optimizingTag;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -232,7 +242,7 @@ public class OptimizingConfig {
         Double.compare(that.majorDuplicateRatio, majorDuplicateRatio) == 0 &&
         fullTriggerInterval == that.fullTriggerInterval && fullRewriteAllFiles == that.fullRewriteAllFiles &&
         baseHashBucket == that.baseHashBucket && baseRefreshInterval == that.baseRefreshInterval &&
-        hiveRefreshInterval == that.hiveRefreshInterval &&
+        hiveRefreshInterval == that.hiveRefreshInterval && optimizingTag == that.optimizingTag &&
         Objects.equal(optimizerGroup, that.optimizerGroup);
   }
 
@@ -240,30 +250,32 @@ public class OptimizingConfig {
   public int hashCode() {
     return Objects.hashCode(enabled, targetQuota, optimizerGroup, maxExecuteRetryCount, maxCommitRetryCount, targetSize,
         maxFileCount, openFileCost, fragmentRatio, minorLeastFileCount, minorLeastInterval, majorDuplicateRatio,
-        fullTriggerInterval, fullRewriteAllFiles, baseHashBucket, baseRefreshInterval, hiveRefreshInterval);
+        fullTriggerInterval, fullRewriteAllFiles, baseHashBucket, baseRefreshInterval, hiveRefreshInterval,
+        optimizingTag);
   }
 
   @Override
   public String toString() {
-    return MoreObjects.toStringHelper(this)
-        .add("enabled", enabled)
-        .add("targetQuota", targetQuota)
-        .add("optimizerGroup", optimizerGroup)
-        .add("maxExecuteRetryCount", maxExecuteRetryCount)
-        .add("maxCommitRetryCount", maxCommitRetryCount)
-        .add("targetSize", targetSize)
-        .add("maxFileCount", maxFileCount)
-        .add("openFileCost", openFileCost)
-        .add("fragmentRatio", fragmentRatio)
-        .add("minorLeastFileCount", minorLeastFileCount)
-        .add("minorLeastInterval", minorLeastInterval)
-        .add("majorDuplicateRatio", majorDuplicateRatio)
-        .add("fullTriggerInterval", fullTriggerInterval)
-        .add("fullRewriteAllFiles", fullRewriteAllFiles)
-        .add("baseHashBucket", baseHashBucket)
-        .add("baseRefreshInterval", baseRefreshInterval)
-        .add("hiveRefreshInterval", hiveRefreshInterval)
-        .toString();
+    return "OptimizingConfig{" +
+        "enabled=" + enabled +
+        ", targetQuota=" + targetQuota +
+        ", optimizerGroup='" + optimizerGroup + '\'' +
+        ", maxExecuteRetryCount=" + maxExecuteRetryCount +
+        ", maxCommitRetryCount=" + maxCommitRetryCount +
+        ", targetSize=" + targetSize +
+        ", maxFileCount=" + maxFileCount +
+        ", openFileCost=" + openFileCost +
+        ", fragmentRatio=" + fragmentRatio +
+        ", minorLeastFileCount=" + minorLeastFileCount +
+        ", minorLeastInterval=" + minorLeastInterval +
+        ", majorDuplicateRatio=" + majorDuplicateRatio +
+        ", fullTriggerInterval=" + fullTriggerInterval +
+        ", fullRewriteAllFiles=" + fullRewriteAllFiles +
+        ", baseHashBucket=" + baseHashBucket +
+        ", baseRefreshInterval=" + baseRefreshInterval +
+        ", hiveRefreshInterval=" + hiveRefreshInterval +
+        ", optimizingTag=" + optimizingTag +
+        '}';
   }
 
   public static OptimizingConfig parseOptimizingConfig(Map<String, String> properties) {
@@ -330,6 +342,10 @@ public class OptimizingConfig {
         .setHiveRefreshInterval(PropertyUtil.propertyAsLong(
             properties,
             HiveTableProperties.REFRESH_HIVE_INTERVAL,
-            HiveTableProperties.REFRESH_HIVE_INTERVAL_DEFAULT));
+            HiveTableProperties.REFRESH_HIVE_INTERVAL_DEFAULT))
+        .setOptimizingTag(PropertyUtil.propertyAsBoolean(
+            properties,
+            TableProperties.AUTO_CREATE_TAG_OPTIMIZE_ENABLED,
+            TableProperties.AUTO_CREATE_TAG_OPTIMIZE_ENABLED_DEFAULT));
   }
 }

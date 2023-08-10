@@ -21,10 +21,18 @@ package com.netease.arctic.server.table;
 public class KeyedTableSnapshot implements TableSnapshot {
   private final long baseSnapshotId;
   private final long changeSnapshotId;
+  private final String ref;
 
   public KeyedTableSnapshot(long baseSnapshotId, long changeSnapshotId) {
     this.baseSnapshotId = baseSnapshotId;
     this.changeSnapshotId = changeSnapshotId;
+    this.ref = null;
+  }
+
+  public KeyedTableSnapshot(long baseSnapshotId, long changeSnapshotId, String ref) {
+    this.baseSnapshotId = baseSnapshotId;
+    this.changeSnapshotId = changeSnapshotId;
+    this.ref = ref;
   }
 
   public long baseSnapshotId() {
@@ -38,5 +46,10 @@ public class KeyedTableSnapshot implements TableSnapshot {
   @Override
   public long snapshotId() {
     return baseSnapshotId;
+  }
+
+  @Override
+  public String ref() {
+    return ref;
   }
 }

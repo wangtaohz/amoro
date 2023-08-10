@@ -56,7 +56,7 @@ public class OptimizingEvaluator {
   public OptimizingEvaluator(TableRuntime tableRuntime, ArcticTable table) {
     this.tableRuntime = tableRuntime;
     this.arcticTable = table;
-    this.currentSnapshot = IcebergTableUtil.getSnapshot(table, tableRuntime);
+    this.currentSnapshot = IcebergTableUtil.getOptimizedSnapshot(table, tableRuntime);
   }
 
   public ArcticTable getArcticTable() {
@@ -123,9 +123,14 @@ public class OptimizingEvaluator {
       return new CommonPartitionEvaluator(tableRuntime, partitionPath, System.currentTimeMillis());
     } else {
       if (com.netease.arctic.hive.utils.TableTypeUtil.isHive(arcticTable)) {
-        String hiveLocation = (((SupportHive) arcticTable).hiveLocation());
-        return new MixedHivePartitionPlan.MixedHivePartitionEvaluator(tableRuntime, partitionPath, hiveLocation,
-            System.currentTimeMillis(), arcticTable.isKeyedTable());
+        if (com.netease.arctic.hive.utils.TableTypeUtil.isFullSnapshotHiveTable(arcticTable)) {
+          return new FullSnapshotMixedHivePartitionPlan.FullSnapshotMixedHivePartitionEvaluator(tableRuntime,
+              partitionPath, System.currentTimeMillis(), arcticTable.isKeyedTable(), currentSnapshot.ref());
+        } else {
+          String hiveLocation = (((SupportHive) arcticTable).hiveLocation());
+          return new MixedHivePartitionPlan.MixedHivePartitionEvaluator(tableRuntime, partitionPath, hiveLocation,
+              System.currentTimeMillis(), arcticTable.isKeyedTable());
+        }
       } else {
         return new MixedIcebergPartitionPlan.MixedIcebergPartitionEvaluator(tableRuntime, partitionPath,
             System.currentTimeMillis(), arcticTable.isKeyedTable());

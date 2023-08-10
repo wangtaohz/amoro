@@ -16,11 +16,21 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.server.table;
+package com.netease.arctic.server.utils;
 
-public interface TableSnapshot {
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
-  long snapshotId();
-  
-  String ref();
+public class TagUtil {
+  private TagUtil() {
+  }
+
+  public static String getDayRefName(LocalDate now, String format) {
+    return now.minusDays(1).format(DateTimeFormatter.ofPattern(format));
+  }
+
+  public static LocalDate getDateOfRef(String name, String format) {
+    return LocalDate.parse(name, DateTimeFormatter.ofPattern(format));
+  }
+
 }

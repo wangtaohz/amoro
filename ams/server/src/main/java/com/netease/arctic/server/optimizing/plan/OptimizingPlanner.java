@@ -24,6 +24,7 @@ import com.netease.arctic.server.optimizing.OptimizingType;
 import com.netease.arctic.server.optimizing.scan.TableFileScanHelper;
 import com.netease.arctic.server.table.KeyedTableSnapshot;
 import com.netease.arctic.server.table.TableRuntime;
+import com.netease.arctic.server.table.TableSnapshot;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.utils.TableTypeUtil;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
@@ -58,7 +59,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     this.availableCore = availableCore;
     this.planTime = System.currentTimeMillis();
     this.processId = Math.max(tableRuntime.getNewestProcessId() + 1, planTime);
-    this.partitionPlannerFactory = new PartitionPlannerFactory(arcticTable, tableRuntime, planTime);
+    this.partitionPlannerFactory = new PartitionPlannerFactory(arcticTable, tableRuntime, planTime, currentSnapshot);
   }
 
   @Override
@@ -172,8 +173,10 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     private final TableRuntime tableRuntime;
     private final String hiveLocation;
     private final long planTime;
+    private final TableSnapshot currentSnapshot;
 
-    public PartitionPlannerFactory(ArcticTable arcticTable, TableRuntime tableRuntime, long planTime) {
+    public PartitionPlannerFactory(ArcticTable arcticTable, TableRuntime tableRuntime, long planTime,
+                                   TableSnapshot currentSnapshot) {
       this.arcticTable = arcticTable;
       this.tableRuntime = tableRuntime;
       this.planTime = planTime;
@@ -182,6 +185,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
       } else {
         this.hiveLocation = null;
       }
+      this.currentSnapshot = currentSnapshot;
     }
 
     public PartitionEvaluator buildPartitionPlanner(String partitionPath) {
@@ -189,7 +193,12 @@ public class OptimizingPlanner extends OptimizingEvaluator {
         return new IcebergPartitionPlan(tableRuntime, arcticTable, partitionPath, planTime);
       } else {
         if (com.netease.arctic.hive.utils.TableTypeUtil.isHive(arcticTable)) {
-          return new MixedHivePartitionPlan(tableRuntime, arcticTable, partitionPath, hiveLocation, planTime);
+          if (com.netease.arctic.hive.utils.TableTypeUtil.isFullSnapshotHiveTable(arcticTable)) {
+            return new FullSnapshotMixedHivePartitionPlan(tableRuntime, arcticTable, partitionPath, planTime,
+                currentSnapshot.ref());
+          } else {
+            return new MixedHivePartitionPlan(tableRuntime, arcticTable, partitionPath, hiveLocation, planTime);
+          }
         } else {
           return new MixedIcebergPartitionPlan(tableRuntime, arcticTable, partitionPath, planTime);
         }

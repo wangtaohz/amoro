@@ -20,13 +20,26 @@ package com.netease.arctic.server.table;
 
 public class BasicTableSnapshot implements TableSnapshot {
   private final long snapshotId;
+  
+  private final String ref;
 
   public BasicTableSnapshot(long snapshotId) {
     this.snapshotId = snapshotId;
+    this.ref = null;
+  }
+
+  public BasicTableSnapshot(long snapshotId, String ref) {
+    this.snapshotId = snapshotId;
+    this.ref = ref;
   }
 
   @Override
   public long snapshotId() {
     return snapshotId;
+  }
+
+  @Override
+  public String ref() {
+    return null;
   }
 }
