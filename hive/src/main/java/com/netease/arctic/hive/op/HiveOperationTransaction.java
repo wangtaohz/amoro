@@ -21,6 +21,7 @@ package com.netease.arctic.hive.op;
 import com.netease.arctic.hive.HMSClient;
 import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.table.UnkeyedHiveTable;
+import com.netease.arctic.hive.utils.TableTypeUtil;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DeleteFiles;
 import org.apache.iceberg.ExpireSnapshots;
@@ -127,7 +128,11 @@ public class HiveOperationTransaction implements Transaction {
 
   @Override
   public OverwriteFiles newOverwrite() {
-    return new OverwriteHiveFiles(wrapped, true, unkeyedHiveTable, client, transactionalClient);
+    if (TableTypeUtil.isFullSnapshotHiveTable(unkeyedHiveTable)) {
+      return new OverwriteFullSnapshotHiveFiles(wrapped, true, unkeyedHiveTable, client, transactionalClient);
+    } else {
+      return new OverwriteHiveFiles(wrapped, true, unkeyedHiveTable, client, transactionalClient);
+    }
   }
 
   @Override

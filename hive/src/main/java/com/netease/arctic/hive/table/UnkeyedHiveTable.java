@@ -24,23 +24,28 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.op.HiveOperationTransaction;
 import com.netease.arctic.hive.op.HiveSchemaUpdate;
+import com.netease.arctic.hive.op.OverwriteFullSnapshotHiveFiles;
 import com.netease.arctic.hive.op.OverwriteHiveFiles;
 import com.netease.arctic.hive.op.ReplaceHivePartitions;
 import com.netease.arctic.hive.op.RewriteHiveFiles;
 import com.netease.arctic.hive.utils.CompatibleHivePropertyUtil;
 import com.netease.arctic.hive.utils.HiveMetaSynchronizer;
 import com.netease.arctic.hive.utils.HiveTableUtil;
+import com.netease.arctic.hive.utils.TableTypeUtil;
 import com.netease.arctic.io.ArcticHadoopFileIO;
 import com.netease.arctic.table.BaseTable;
 import com.netease.arctic.table.BasicUnkeyedTable;
 import com.netease.arctic.table.TableIdentifier;
+import org.apache.iceberg.OverwriteFiles;
 import org.apache.iceberg.ReplacePartitions;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.Transaction;
 import org.apache.iceberg.UpdateSchema;
 import org.apache.iceberg.util.PropertyUtil;
+
 import java.util.Map;
+
 import static com.netease.arctic.hive.HiveTableProperties.BASE_HIVE_LOCATION_ROOT;
 
 /**
@@ -145,8 +150,12 @@ public class UnkeyedHiveTable extends BasicUnkeyedTable implements BaseTable, Su
   }
 
   @Override
-  public OverwriteHiveFiles newOverwrite() {
-    return new OverwriteHiveFiles(super.newTransaction(), false, this, hiveClient, hiveClient);
+  public OverwriteFiles newOverwrite() {
+    if (TableTypeUtil.isFullSnapshotHiveTable(this)) {
+      return new OverwriteFullSnapshotHiveFiles(super.newTransaction(), false, this, hiveClient, hiveClient);
+    } else {
+      return new OverwriteHiveFiles(super.newTransaction(), false, this, hiveClient, hiveClient);
+    }
   }
 
   @Override

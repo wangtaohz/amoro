@@ -10,9 +10,8 @@ public class TableTypeUtil {
   }
 
   public static boolean isFullSnapshotHiveTable(ArcticTable arcticTable) {
-    return isHive(arcticTable) &&
-        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG.equals(
-            arcticTable.properties().getOrDefault(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
-                HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT));
+    return HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG.equals(
+        arcticTable.properties().getOrDefault(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+            HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT));
   }
 }

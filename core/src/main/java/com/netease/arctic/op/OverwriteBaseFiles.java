@@ -65,6 +65,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
   // dynamic indicate that the optimized sequence should be applied to the changed partitions
   private Boolean dynamic;
   private Expression conflictDetectionFilter = null;
+  private String branch = null;
 
   public OverwriteBaseFiles(KeyedTable table) {
     super(table);
@@ -104,6 +105,11 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
 
   public OverwriteBaseFiles dynamic(boolean enable) {
     this.dynamic = enable;
+    return this;
+  }
+
+  public OverwriteBaseFiles toBranch(String branch) {
+    this.branch = branch;
     return this;
   }
 
@@ -168,6 +174,9 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
     // step1: overwrite data files
     if (!this.addFiles.isEmpty() || !this.deleteFiles.isEmpty()) {
       OverwriteFiles overwriteFiles = transaction.newOverwrite();
+      if (branch != null) {
+        overwriteFiles = overwriteFiles.toBranch(branch);
+      }
 
       if (conflictDetectionFilter != null && baseTable.currentSnapshot() != null) {
         overwriteFiles.conflictDetectionFilter(conflictDetectionFilter).validateNoConflictingData();
@@ -198,6 +207,9 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
     if (CollectionUtils.isNotEmpty(addDeleteFiles) || CollectionUtils.isNotEmpty(deleteDeleteFiles)) {
       if (CollectionUtils.isEmpty(deleteDeleteFiles)) {
         RowDelta rowDelta = transaction.newRowDelta();
+        if (branch == null) {
+          rowDelta = rowDelta.toBranch(branch);
+        }
         if (baseTable.currentSnapshot() != null) {
           rowDelta.validateFromSnapshot(baseTable.currentSnapshot().snapshotId());
         }
@@ -218,6 +230,9 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
         }
       } else {
         RewriteFiles rewriteFiles = transaction.newRewrite();
+        if (branch != null) {
+          rewriteFiles = rewriteFiles.toBranch(branch);
+        }
         if (baseTable.currentSnapshot() != null) {
           rewriteFiles.validateFromSnapshot(baseTable.currentSnapshot().snapshotId());
         }

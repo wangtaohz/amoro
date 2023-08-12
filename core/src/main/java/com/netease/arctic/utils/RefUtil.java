@@ -16,21 +16,17 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.server.utils;
+package com.netease.arctic.utils;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class TagUtil {
-  private TagUtil() {
-  }
-
+public class RefUtil {
   public static String getDayRefName(LocalDate now, String format) {
-    return now.minusDays(1).format(DateTimeFormatter.ofPattern(format));
+    return now.format(DateTimeFormatter.ofPattern(format));
   }
 
   public static LocalDate getDateOfRef(String name, String format) {
     return LocalDate.parse(name, DateTimeFormatter.ofPattern(format));
   }
-
 }

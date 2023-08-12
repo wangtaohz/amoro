@@ -21,9 +21,9 @@ package com.netease.arctic.server.optimizing.plan;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.optimizing.OptimizingInputProperties;
 import com.netease.arctic.server.table.TableRuntime;
-import com.netease.arctic.server.utils.TagUtil;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableProperties;
+import com.netease.arctic.utils.RefUtil;
 import org.apache.iceberg.util.PropertyUtil;
 
 import java.time.LocalDate;
@@ -95,7 +95,7 @@ public class FullSnapshotMixedHivePartitionPlan extends MixedIcebergPartitionPla
       String branchFormat =
           PropertyUtil.propertyAsString(tableObject.properties(), TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT,
               TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT);
-      LocalDate dateOfRef = TagUtil.getDateOfRef(partition, branchFormat);
+      LocalDate dateOfRef = RefUtil.getDateOfRef(partition, branchFormat);
       String formattedPartitionDate = dateOfRef.format(DateTimeFormatter.ofPattern(partitionDateFormat));
       customHiveSubdirectory = HiveTableProperties.TAG_DEFAULT_COLUMN_NAME + "=" + formattedPartitionDate;
     }

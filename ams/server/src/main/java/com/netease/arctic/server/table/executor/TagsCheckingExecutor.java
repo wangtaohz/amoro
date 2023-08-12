@@ -20,7 +20,6 @@ package com.netease.arctic.server.table.executor;
 
 import com.netease.arctic.server.table.TableManager;
 import com.netease.arctic.server.table.TableRuntime;
-import com.netease.arctic.server.utils.TagUtil;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.BaseTable;
 import com.netease.arctic.table.ChangeTable;
@@ -28,6 +27,7 @@ import com.netease.arctic.table.KeyedTable;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.table.UnkeyedTable;
 import com.netease.arctic.utils.CompatiblePropertyUtil;
+import com.netease.arctic.utils.RefUtil;
 import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.SnapshotRef;
 import org.apache.iceberg.Table;
@@ -207,11 +207,11 @@ public class TagsCheckingExecutor extends BaseTableExecutor {
     }
 
     private String getTodayTagName() {
-      return TagUtil.getDayRefName(now, tagConfig.getTagFormat());
+      return RefUtil.getDayRefName(now.minusDays(1), tagConfig.getTagFormat());
     }
 
     private String getTodayBranchName() {
-      return TagUtil.getDayRefName(now, tagConfig.getBranchFormat());
+      return RefUtil.getDayRefName(now.minusDays(1), tagConfig.getBranchFormat());
     }
 
     private long getTagTriggerTime() {
