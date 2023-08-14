@@ -37,25 +37,28 @@ public class KeyedTableCommit extends UnKeyedTableCommit {
 
   private static final Logger LOG = LoggerFactory.getLogger(KeyedTableCommit.class);
 
-  protected ArcticTable table;
+  private final ArcticTable table;
 
-  protected Collection<TaskRuntime> tasks;
+  private final Collection<TaskRuntime> tasks;
 
-  protected Long fromSnapshotId;
+  private final Long fromSnapshotId;
 
-  protected StructLikeMap<Long> fromSequenceOfPartitions;
+  private final StructLikeMap<Long> fromSequenceOfPartitions;
 
-  protected StructLikeMap<Long> toSequenceOfPartitions;
+  private final StructLikeMap<Long> toSequenceOfPartitions;
+  
+  private final String branch;
 
   public KeyedTableCommit(
       ArcticTable table, Collection<TaskRuntime> tasks, Long fromSnapshotId,
-      StructLikeMap<Long> fromSequenceOfPartitions, StructLikeMap<Long> toSequenceOfPartitions) {
+      StructLikeMap<Long> fromSequenceOfPartitions, StructLikeMap<Long> toSequenceOfPartitions, String branch) {
     super(fromSnapshotId, table, tasks);
     this.table = table;
     this.tasks = tasks;
     this.fromSnapshotId = fromSnapshotId == null ? INVALID_SNAPSHOT_ID : fromSnapshotId;
     this.fromSequenceOfPartitions = fromSequenceOfPartitions;
     this.toSequenceOfPartitions = toSequenceOfPartitions;
+    this.branch = branch;
   }
 
   @Override
@@ -133,6 +136,9 @@ public class KeyedTableCommit extends UnKeyedTableCommit {
       Set<DeleteFile> removedDeleteFiles) {
     //overwrite files
     OverwriteBaseFiles overwriteBaseFiles = new OverwriteBaseFiles(table.asKeyedTable());
+    if (branch != null) {
+      overwriteBaseFiles.toBranch(branch);
+    }
     overwriteBaseFiles.set(SnapshotSummary.SNAPSHOT_PRODUCER, CommitMetaProducer.OPTIMIZE.name());
     overwriteBaseFiles.validateNoConflictingAppends(Expressions.alwaysFalse());
     overwriteBaseFiles.dynamic(false);

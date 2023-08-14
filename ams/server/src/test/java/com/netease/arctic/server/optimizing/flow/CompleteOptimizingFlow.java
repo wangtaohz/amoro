@@ -203,7 +203,8 @@ public class CompleteOptimizingFlow {
           taskRuntimes,
           formSnapshotId,
           getStructLike(fromSequence),
-          getStructLike(toSequence));
+          getStructLike(toSequence),
+          null);
     }
   }
 

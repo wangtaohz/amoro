@@ -68,7 +68,7 @@ public class FullSnapshotMixedHivePartitionPlan extends MixedIcebergPartitionPla
   }
 
   protected static class FullSnapshotMixedHivePartitionEvaluator extends MixedIcebergPartitionEvaluator {
-    private String branch;
+    private final String branch;
 
     public FullSnapshotMixedHivePartitionEvaluator(TableRuntime tableRuntime, String partition, long planTime,
                                                    boolean keyedTable, String branch) {

@@ -35,6 +35,7 @@ public class TableRuntimeMeta {
   private String summary;
   private Map<String, Long> fromSequence;
   private Map<String, Long> toSequence;
+  private String branch;
 
   private TableRuntime tableRuntime;
 
@@ -213,6 +214,14 @@ public class TableRuntimeMeta {
 
   public void setToSequence(Map<String, Long> toSequence) {
     this.toSequence = toSequence;
+  }
+
+  public String getBranch() {
+    return branch;
+  }
+
+  public void setBranch(String branch) {
+    this.branch = branch;
   }
 
   public void setTableStatus(OptimizingStatus tableStatus) {

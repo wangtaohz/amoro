@@ -354,6 +354,8 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
 
     private Map<String, Long> fromSequence = Maps.newHashMap();
     private Map<String, Long> toSequence = Maps.newHashMap();
+    
+    private String branch;
 
     private boolean hasCommitted = false;
 
@@ -367,6 +369,7 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
       loadTaskRuntimes(planner.planTasks());
       fromSequence = planner.getFromSequence();
       toSequence = planner.getToSequence();
+      branch = planner.branch();
       beginAndPersistProcess();
     }
 
@@ -383,6 +386,7 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
       if (tableRuntimeMeta.getToSequence() != null) {
         toSequence = tableRuntimeMeta.getToSequence();
       }
+      branch = tableRuntimeMeta.getBranch();
       loadTaskRuntimes();
       tableRuntimeMeta.getTableRuntime().recover(this);
     }
@@ -541,6 +545,14 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
       }
     }
 
+    public String getBranch() {
+      return branch;
+    }
+
+    public void setBranch(String branch) {
+      this.branch = branch;
+    }
+
     @Override
     public MetricsSummary getSummary() {
       return new MetricsSummary(taskMap.values());
@@ -552,7 +564,7 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
         return new UnKeyedTableCommit(targetSnapshotId, table, taskMap.values());
       } else {
         return new KeyedTableCommit(table, taskMap.values(), targetSnapshotId,
-            convertPartitionSequence(table, fromSequence), convertPartitionSequence(table, toSequence));
+            convertPartitionSequence(table, fromSequence), convertPartitionSequence(table, toSequence), branch);
       }
     }
 
@@ -575,7 +587,7 @@ public class OptimizingQueue extends PersistentBase implements OptimizingService
           () -> doAs(OptimizingMapper.class, mapper ->
               mapper.insertOptimizingProcess(tableRuntime.getTableIdentifier(),
                   processId, targetSnapshotId, targetChangeSnapshotId, status, optimizingType, planTime, getSummary(),
-                  fromSequence, toSequence)),
+                  fromSequence, toSequence, branch)),
           () -> doAs(OptimizingMapper.class, mapper ->
               mapper.insertTaskRuntimes(Lists.newArrayList(taskMap.values()))),
           () -> TaskFilesPersistence.persistTaskInputs(processId, taskMap.values()),

@@ -124,6 +124,7 @@ CREATE TABLE table_optimizing_process (
     summary             CLOB(64m),
     from_sequence       CLOB(64m),
     to_sequence         CLOB(64m),
+    branch              VARCHAR(256) DEFAULT NULL,
     CONSTRAINT table_optimizing_process_pk PRIMARY KEY (process_id)
 );
 

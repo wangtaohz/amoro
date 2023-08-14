@@ -40,6 +40,7 @@ public class OptimizingProcessMeta {
   private MetricsSummary summary;
   private Map<String, Long> fromSequence;
   private Map<String, Long> toSequence;
+  private String branch;
 
   public OptimizingProcessMeta() {
   }
@@ -162,5 +163,13 @@ public class OptimizingProcessMeta {
 
   public void setToSequence(Map<String, Long> toSequence) {
     this.toSequence = toSequence;
+  }
+
+  public String getBranch() {
+    return branch;
+  }
+
+  public void setBranch(String branch) {
+    this.branch = branch;
   }
 }

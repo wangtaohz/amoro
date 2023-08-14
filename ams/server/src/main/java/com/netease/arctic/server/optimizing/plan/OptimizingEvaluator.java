@@ -152,6 +152,10 @@ public class OptimizingEvaluator {
     return new PendingInput(partitionPlanMap.values());
   }
 
+  public String branch() {
+    return currentSnapshot.ref();
+  }
+
   public static class PendingInput {
 
     private final Set<String> partitions = Sets.newHashSet();

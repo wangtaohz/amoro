@@ -35,13 +35,14 @@ public interface OptimizingMapper {
 
   @Insert("INSERT INTO table_optimizing_process(table_id, catalog_name, db_name, table_name ,process_id," +
       " target_snapshot_id, target_change_snapshot_id, status, optimizing_type, plan_time, summary, from_sequence," +
-      " to_sequence) VALUES (#{table.id}, #{table.catalog}," +
+      " to_sequence, branch) VALUES (#{table.id}, #{table.catalog}," +
       " #{table.database}, #{table.tableName}, #{processId}, #{targetSnapshotId}, #{targetChangeSnapshotId}," +
       " #{status}, #{optimizingType}," +
       " #{planTime, typeHandler=com.netease.arctic.server.persistence.converter.Long2TsConverter}," +
       " #{summary, typeHandler=com.netease.arctic.server.persistence.converter.JsonObjectConverter}," +
       " #{fromSequence, typeHandler=com.netease.arctic.server.persistence.converter.MapLong2StringConverter}," +
-      " #{toSequence, typeHandler=com.netease.arctic.server.persistence.converter.MapLong2StringConverter}" +
+      " #{toSequence, typeHandler=com.netease.arctic.server.persistence.converter.MapLong2StringConverter}," +
+      " #{branch}" +
       ")")
   void insertOptimizingProcess(
       @Param("table") ServerTableIdentifier tableIdentifier,
@@ -53,7 +54,8 @@ public interface OptimizingMapper {
       @Param("planTime") long planTime,
       @Param("summary") MetricsSummary summary,
       @Param("fromSequence") Map<String, Long> fromSequence,
-      @Param("toSequence") Map<String, Long> toSequence);
+      @Param("toSequence") Map<String, Long> toSequence,
+      @Param("branch") String branch);
 
   @Update("UPDATE table_optimizing_process SET status = #{optimizingStatus}," +
       " end_time = #{endTime, typeHandler=com.netease.arctic.server.persistence.converter.Long2TsConverter}, " +
@@ -70,7 +72,7 @@ public interface OptimizingMapper {
 
   @Select("SELECT a.process_id, a.table_id, a.catalog_name, a.db_name, a.table_name, a.target_snapshot_id," +
       " a.target_change_snapshot_id, a.status, a.optimizing_type, a.plan_time, a.end_time," +
-      " a.fail_reason, a.summary, a.from_sequence, a.to_sequence FROM table_optimizing_process a" +
+      " a.fail_reason, a.summary, a.from_sequence, a.to_sequence, a.branch FROM table_optimizing_process a" +
       " INNER JOIN table_identifier b ON a.table_id = b.table_id" +
       " WHERE a.catalog_name = #{catalogName} AND a.db_name = #{dbName} AND a.table_name = #{tableName}" +
       " AND b.catalog_name = #{catalogName} AND b.db_name = #{dbName} AND b.table_name = #{tableName}" +
@@ -90,7 +92,8 @@ public interface OptimizingMapper {
       @Result(property = "failReason", column = "fail_reason"),
       @Result(property = "summary", column = "summary", typeHandler = JsonObjectConverter.class),
       @Result(property = "fromSequence", column = "from_sequence",  typeHandler = MapLong2StringConverter.class),
-      @Result(property = "toSequence", column = "to_sequence",  typeHandler = MapLong2StringConverter.class)
+      @Result(property = "toSequence", column = "to_sequence",  typeHandler = MapLong2StringConverter.class),
+      @Result(property = "branch", column = "branch")
   })
   List<OptimizingProcessMeta> selectOptimizingProcesses(
       @Param("catalogName") String catalogName, @Param("dbName") String dbName, @Param("tableName") String tableName);
