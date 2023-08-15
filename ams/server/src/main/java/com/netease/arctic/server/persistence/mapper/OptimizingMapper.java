@@ -42,7 +42,7 @@ public interface OptimizingMapper {
       " #{summary, typeHandler=com.netease.arctic.server.persistence.converter.JsonObjectConverter}," +
       " #{fromSequence, typeHandler=com.netease.arctic.server.persistence.converter.MapLong2StringConverter}," +
       " #{toSequence, typeHandler=com.netease.arctic.server.persistence.converter.MapLong2StringConverter}," +
-      " #{branch}" +
+      " #{branch, jdbcType=VARCHAR}" +
       ")")
   void insertOptimizingProcess(
       @Param("table") ServerTableIdentifier tableIdentifier,
