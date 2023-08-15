@@ -30,8 +30,6 @@ import com.netease.arctic.table.TableIdentifier;
 import com.netease.arctic.table.TableProperties;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.iceberg.PartitionSpec;
-import org.apache.iceberg.Schema;
-import org.apache.iceberg.types.Types;
 import org.apache.thrift.TException;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -106,7 +104,7 @@ public class TestMixedHiveCatalog extends TestMixedCatalog {
     Assert.assertEquals(BasicTableTestHelper.PRIMARY_KEY_SPEC, keyedTable.primaryKeySpec());
     Assert.assertEquals(getCreateTableSchema().asStruct(), keyedTable.baseTable().schema().asStruct());
     Assert.assertEquals(getCreateTableSchema().asStruct(), keyedTable.changeTable().schema().asStruct());
-    Assert.assertEquals(table.properties().get(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE_DEFAULT), "false");
+    Assert.assertEquals(table.properties().get(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE), "false");
     Assert.assertEquals(table.properties().get(TableProperties.ENABLE_AUTO_CREATE_TAG), "true");
 
     String dbName = table.id().getDatabase();
