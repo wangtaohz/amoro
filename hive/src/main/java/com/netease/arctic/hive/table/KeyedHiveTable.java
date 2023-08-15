@@ -25,6 +25,7 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.op.BaseSchemaUpdate;
 import com.netease.arctic.hive.utils.HiveMetaSynchronizer;
+import com.netease.arctic.hive.utils.TableTypeUtil;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.io.ArcticHadoopFileIO;
 import com.netease.arctic.scan.ChangeTableIncrementalScan;
@@ -94,6 +95,9 @@ public class KeyedHiveTable extends BasicKeyedTable implements SupportHive {
 
   @Override
   public boolean enableSyncHiveSchemaToArctic() {
+    if (TableTypeUtil.isFullSnapshotHiveTable(this)) {
+      return false;
+    }
     return PropertyUtil.propertyAsBoolean(
         properties(),
         HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE,
@@ -107,6 +111,9 @@ public class KeyedHiveTable extends BasicKeyedTable implements SupportHive {
 
   @Override
   public boolean enableSyncHiveDataToArctic() {
+    if (TableTypeUtil.isFullSnapshotHiveTable(this)) {
+      return false;
+    }
     return PropertyUtil.propertyAsBoolean(
         properties(),
         HiveTableProperties.AUTO_SYNC_HIVE_DATA_WRITE,

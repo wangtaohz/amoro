@@ -63,6 +63,10 @@ public class HiveCommitSyncExecutor extends BaseTableExecutor {
         LOG.debug("{} is not a support hive table", tableIdentifier);
         return;
       }
+      if (TableTypeUtil.isFullSnapshotHiveTable(arcticTable)) {
+        LOG.debug("{} is a full snapshot hive table, skip hive sync", tableIdentifier);
+        return;
+      }
       LOG.info("{} start hive sync", tableIdentifier);
       syncIcebergToHive(arcticTable);
     } catch (Exception e) {
