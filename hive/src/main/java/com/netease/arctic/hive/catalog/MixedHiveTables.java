@@ -121,6 +121,12 @@ public class MixedHiveTables extends MixedTables {
       tableMeta.putToProperties(TableProperties.SELF_OPTIMIZING_FULL_TRIGGER_INTERVAL, "86400000");
     }
 
+    // When a table with tags is created, the schema cannot be automatically synchronized to prevent schema problems
+    if (createArcticTableWithTag) {
+      tableMeta.putToProperties(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE, "false");
+      tableMeta.putToProperties(TableProperties.ENABLE_AUTO_CREATE_TAG, "true");
+    }
+
     ArcticHadoopFileIO fileIO = ArcticFileIOs.buildRecoverableHadoopFileIO(
         tableIdentifier, tableLocation, tableMeta.getProperties(),
         tableMetaStore, catalogMeta.getCatalogProperties());

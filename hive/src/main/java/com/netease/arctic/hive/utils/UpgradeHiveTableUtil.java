@@ -165,7 +165,6 @@ public class UpgradeHiveTableUtil {
       ArcticTable arcticTable = arcticHiveCatalog.newTableBuilder(tableIdentifier, schema)
           .withProperties(properties)
           .withPrimaryKeySpec(primaryKeyBuilder.build())
-          .withProperty(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE, "false")
           .withProperty(HiveTableProperties.ALLOW_HIVE_TABLE_EXISTED, "true")
           .create();
       upgradeHive = true;
