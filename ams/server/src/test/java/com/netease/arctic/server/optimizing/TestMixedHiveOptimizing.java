@@ -95,21 +95,23 @@ public class TestMixedHiveOptimizing extends AbstractOptimizingTest {
     KeyedTable table = arcticTable.asKeyedTable();
     // Step1: write 1 data file into base node(0,0)
     updateProperties(table, TableProperties.BASE_FILE_INDEX_HASH_BUCKET, 1 + "");
+    updateProperties(table, TableProperties.SELF_OPTIMIZING_FULL_TRIGGER_INTERVAL, 1000 + "");
+    updateProperties(table, TableProperties.SELF_OPTIMIZING_FULL_REWRITE_ALL_FILES,  "false");
     writeBase(table, rangeFromTo(1, 100, "aaa", quickDateWithZone(3)));
     // wait Full Optimize result
     OptimizingProcessMeta optimizeHistory = checker.waitOptimizeResult();
     checker.assertOptimizingProcess(optimizeHistory, OptimizingType.FULL, 1, 1);
     assertIdRange(readRecords(table), 1, 100);
     // assert file are in hive location
-    // assertIdRange(readHiveTableData(), 1, 100);
+    assertIdRange(readHiveTableData(), 1, 100);
 
     // Step2: write 1 small file to base
     writeBase(table, rangeFromTo(101, 102, "aaa", quickDateWithZone(3)));
     // wait Major Optimize result, generate 1 data file from 2 small files, but not move to hive location
     optimizeHistory = checker.waitOptimizeResult();
-    checker.assertOptimizingProcess(optimizeHistory, OptimizingType.MINOR, 2, 1);
+    checker.assertOptimizingProcess(optimizeHistory, OptimizingType.FULL, 1, 1);
     assertIdRange(readRecords(table), 1, 102);
-    // assertIdRange(readHiveTableData(), 1, 102);
+    assertIdRange(readHiveTableData(), 1, 102);
 
     checker.assertOptimizeHangUp();
   }
