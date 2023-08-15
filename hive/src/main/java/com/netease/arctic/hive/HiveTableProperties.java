@@ -68,8 +68,6 @@ public class HiveTableProperties {
 
   public static final String ALLOW_HIVE_TABLE_EXISTED = "allow-hive-table-existed";
 
-  public static final String CREATE_ARCTIC_TABLE_WITH_TAG = "create-arctic-table-with-tag";
-
   public static final String WATERMARK_HIVE = "watermark.hive";
 
   public static final String PARQUET_INPUT_FORMAT = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat";

@@ -9,6 +9,7 @@ import com.netease.arctic.hive.CachedHiveClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.table.KeyedHiveTable;
 import com.netease.arctic.hive.table.UnkeyedHiveTable;
+import com.netease.arctic.hive.utils.CompatibleHivePropertyUtil;
 import com.netease.arctic.hive.utils.HiveSchemaUtil;
 import com.netease.arctic.hive.utils.HiveTableUtil;
 import com.netease.arctic.io.ArcticFileIO;
@@ -333,9 +334,10 @@ public class MixedHiveTables extends MixedTables {
   }
 
   private boolean createArcticTableWithTag(TableMeta tableMeta) {
-    String createArcticTableWithTag =
-        tableMeta.getProperties().remove(HiveTableProperties.CREATE_ARCTIC_TABLE_WITH_TAG);
-    return Boolean.parseBoolean(createArcticTableWithTag);
+    return CompatibleHivePropertyUtil.propertyAsString(tableMeta.getProperties(),
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+        HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT)
+        .equals(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG);
   }
 
   @Override
