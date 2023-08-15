@@ -31,7 +31,6 @@ import com.netease.arctic.server.table.KeyedTableSnapshot;
 import com.netease.arctic.server.table.ServerTableIdentifier;
 import com.netease.arctic.server.table.TableRuntime;
 import com.netease.arctic.server.table.TableSnapshot;
-import com.netease.arctic.server.table.executor.TagsCheckingExecutor;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableMetaStore;
 import com.netease.arctic.table.UnkeyedTable;
@@ -112,10 +111,8 @@ public class IcebergTableUtil {
   }
 
   private static String findDayBranchToOptimize(LocalDate now, ArcticTable arcticTable) {
-    TagsCheckingExecutor.TagConfig tagConfig =
-        TagsCheckingExecutor.TagConfig.fromTableProperties(arcticTable.properties());
-    String todayTag = RefUtil.getDayRefName(now.minusDays(1), tagConfig.getTagFormat());
-    String todayBranch = RefUtil.getDayRefName(now.minusDays(1), tagConfig.getBranchFormat());
+    String todayTag = RefUtil.getDayTagName(now.minusDays(1), arcticTable.properties());
+    String todayBranch = RefUtil.getDayBranchName(now.minusDays(1), arcticTable.properties());
     Table table;
     if (arcticTable.isUnkeyedTable()) {
       table = arcticTable.asUnkeyedTable();

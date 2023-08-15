@@ -22,7 +22,6 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.table.UnkeyedHiveTable;
 import com.netease.arctic.hive.utils.HivePartitionUtil;
-import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.utils.RefUtil;
 import com.netease.arctic.utils.TableFileUtil;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -199,11 +198,9 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
 
   public String getPartitionValue() {
     Map<String, String> properties = table.properties();
-    String branchFormat = PropertyUtil.propertyAsString(properties, TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT,
-        TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT);
     String hiveFormat = PropertyUtil.propertyAsString(properties, HiveTableProperties.HIVE_PARTITION_FORMAT,
         HiveTableProperties.HIVE_PARTITION_FORMAT_DEFAULT);
-    LocalDate date = RefUtil.getDateOfRef(branch, branchFormat);
+    LocalDate date = RefUtil.getDateOfBranch(branch, properties);
     return RefUtil.getDayRefName(date, hiveFormat);
   }
 }

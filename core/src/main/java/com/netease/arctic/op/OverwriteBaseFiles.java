@@ -22,6 +22,7 @@ import com.netease.arctic.scan.CombinedScanTask;
 import com.netease.arctic.table.KeyedTable;
 import com.netease.arctic.table.UnkeyedTable;
 import com.netease.arctic.utils.PuffinUtil;
+import com.netease.arctic.utils.RefUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.iceberg.DataFile;
@@ -40,8 +41,11 @@ import org.apache.iceberg.io.CloseableIterable;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.util.StructLikeMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +54,7 @@ import java.util.List;
  * Overwrite {@link com.netease.arctic.table.BaseTable} and change max transaction id map
  */
 public class OverwriteBaseFiles extends PartitionTransactionOperation {
+  private static final Logger LOG = LoggerFactory.getLogger(OverwriteBaseFiles.class);
 
   public static final String PROPERTIES_TRANSACTION_ID = "txId";
 
@@ -170,6 +175,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
 
     UnkeyedTable baseTable = keyedTable.baseTable();
     CreateSnapshotEvent newSnapshot = null;
+    CreateSnapshotEvent lastSnapshot = null;
 
     // step1: overwrite data files
     if (!this.addFiles.isEmpty() || !this.deleteFiles.isEmpty()) {
@@ -201,6 +207,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
       }
       overwriteFiles.commit();
       newSnapshot = (CreateSnapshotEvent) overwriteFiles.updateEvent();
+      lastSnapshot = (CreateSnapshotEvent) overwriteFiles.updateEvent();
     }
 
     // step2: RowDelta/Rewrite pos-delete files
@@ -225,6 +232,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
           properties.forEach(rowDelta::set);
         }
         rowDelta.commit();
+        lastSnapshot = (CreateSnapshotEvent) rowDelta.updateEvent();
         if (newSnapshot == null) {
           newSnapshot = (CreateSnapshotEvent) rowDelta.updateEvent();
         }
@@ -251,6 +259,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
           properties.forEach(rewriteFiles::set);
         }
         rewriteFiles.commit();
+        lastSnapshot = (CreateSnapshotEvent) rewriteFiles.updateEvent();
         if (newSnapshot == null) {
           newSnapshot = (CreateSnapshotEvent) rewriteFiles.updateEvent();
         }
@@ -260,7 +269,15 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
       return null;
     }
 
-    // step3: set optimized sequence id, optimized time
+    // step3: remove branch create tag
+    if (branch != null) {
+      transaction.manageSnapshots().removeBranch(branch).commit();
+      LocalDate date = RefUtil.getDateOfBranch(branch, keyedTable.properties());
+      String tag = RefUtil.getDayTagName(date, keyedTable.properties());
+      transaction.manageSnapshots().createTag(tag, lastSnapshot.snapshotId()).commit();
+    }
+
+    // step2: set optimized sequence id, optimized time
     long commitTime = System.currentTimeMillis();
     PartitionSpec spec = transaction.table().spec();
     PuffinUtil.Reader reader = PuffinUtil.reader(transaction.table());
@@ -291,6 +308,18 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
         .addBaseOptimizedTime(optimizedTime)
         .overwrite()
         .write();
+  }
+
+  @Override
+  public void commit() {
+    super.commit();
+    if (branch != null && this.keyedTable.isKeyedTable()) {
+      try {
+        this.keyedTable.changeTable().manageSnapshots().removeBranch(branch).commit();
+      } catch (Throwable t) {
+        LOG.warn("failed to remove branch {} of change store, ignore", branch, t);
+      }
+    }
   }
 
   private void applyDeleteExpression() {

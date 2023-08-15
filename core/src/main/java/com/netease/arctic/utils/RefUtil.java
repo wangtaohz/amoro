@@ -18,12 +18,42 @@
 
 package com.netease.arctic.utils;
 
+import com.netease.arctic.table.TableProperties;
+import org.apache.iceberg.util.PropertyUtil;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 public class RefUtil {
+  public static String getTagFormat(Map<String, String> properties) {
+    return PropertyUtil.propertyAsString(properties, TableProperties.AUTO_CREATE_TAG_FORMAT,
+        TableProperties.AUTO_CREATE_TAG_FORMAT_DEFAULT);
+  }
+
+  public static String getBranchFormat(Map<String, String> properties) {
+    return PropertyUtil.propertyAsString(properties, TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT,
+        TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT);
+  }
+
+  public static String getDayTagName(LocalDate now, Map<String, String> properties) {
+    return getDayRefName(now, getTagFormat(properties));
+  }
+
+  public static String getDayBranchName(LocalDate now, Map<String, String> properties) {
+    return getDayRefName(now, getBranchFormat(properties));
+  }
+
   public static String getDayRefName(LocalDate now, String format) {
     return now.format(DateTimeFormatter.ofPattern(format));
+  }
+
+  public static LocalDate getDateOfTag(String name, Map<String, String> properties) {
+    return getDateOfRef(name, getTagFormat(properties));
+  }
+
+  public static LocalDate getDateOfBranch(String name, Map<String, String> properties) {
+    return getDateOfRef(name, getBranchFormat(properties));
   }
 
   public static LocalDate getDateOfRef(String name, String format) {
