@@ -125,6 +125,7 @@ public class MixedHiveTables extends MixedTables {
     if (createArcticTableWithTag) {
       tableMeta.putToProperties(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE, "false");
       tableMeta.putToProperties(TableProperties.ENABLE_AUTO_CREATE_TAG, "true");
+      tableMeta.putToProperties(TableProperties.AUTO_CREATE_TAG_OPTIMIZE_ENABLED, "true");
     }
 
     ArcticHadoopFileIO fileIO = ArcticFileIOs.buildRecoverableHadoopFileIO(
