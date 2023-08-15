@@ -243,7 +243,7 @@ public class HiveMetaSynchronizer {
         String hivePartitionName = hivePartitionNames.get(i);
         List<DataFile> hiveDataFiles = HiveMetaSynchronizer.listHivePartitionFiles(
             table, Maps.newHashMap(), hivePartition.getSd().getLocation());
-        rewriteTableWithTag(table, hiveDataFiles, hivePartitionName);
+        overwriteTableWithTag(table, hiveDataFiles, hivePartitionName);
       }
     } catch (TException | InterruptedException e) {
       throw new RuntimeException("Failed to get hive table:" + table.id(), e);
@@ -350,16 +350,17 @@ public class HiveMetaSynchronizer {
     }
   }
 
-  private static void rewriteTableWithTag(ArcticTable table, List<DataFile> filesToAdd, String partitionName) {
+  private static void overwriteTableWithTag(ArcticTable table, List<DataFile> filesToAdd, String partitionName) {
     if (filesToAdd.size() > 0) {
       LOG.info("Table {} sync hive data change to arctic, add files {}", table.id(),
           filesToAdd.stream().map(DataFile::path).collect(Collectors.toList()));
       if (table.isKeyedTable()) {
         long txId = table.asKeyedTable().beginTransaction(null);
-        RewritePartitions rewritePartitions = table.asKeyedTable().newRewritePartitions();
-        filesToAdd.forEach(rewritePartitions::addDataFile);
-        rewritePartitions.updateOptimizedSequenceDynamically(txId);
-        rewritePartitions.commit();
+        OverwriteBaseFiles overwriteBaseFiles = table.asKeyedTable().newOverwriteBaseFiles();
+        overwriteBaseFiles.set(OverwriteHiveFiles.PROPERTIES_VALIDATE_LOCATION, "false");
+        filesToAdd.forEach(overwriteBaseFiles::addFile);
+        overwriteBaseFiles.updateOptimizedSequenceDynamically(txId);
+        overwriteBaseFiles.commit();
         table.asKeyedTable().baseTable().manageSnapshots()
             .createTag(partitionName, table.asKeyedTable().baseTable().currentSnapshot().snapshotId()).commit();
       } else {
