@@ -2,6 +2,7 @@ package com.netease.arctic.server.optimizing;
 
 import com.netease.arctic.server.persistence.PersistentBase;
 import com.netease.arctic.server.persistence.mapper.OptimizingMapper;
+import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableIdentifier;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.relocated.com.google.common.collect.Sets;
@@ -78,6 +79,47 @@ public class BaseOptimizingChecker extends PersistentBase {
         optimizingProcess.getSummary().getRewriteDataFileCnt() + optimizingProcess.getSummary().getEqDeleteFileCnt() +
             optimizingProcess.getSummary().getPosDeleteFileCnt());
     Assert.assertEquals(fileCntAfter, optimizingProcess.getSummary().getNewFileCnt());
+  }
+
+  protected boolean waitBranch(ArcticTable table, String branch) {
+    try {
+      return waitUntilFinish(() -> {
+        table.refresh();
+        if (table.isKeyedTable()) {
+          if (table.asKeyedTable().changeTable().refs().containsKey(branch) &&
+              table.asKeyedTable().baseTable().refs().containsKey(branch)) {
+            return Status.SUCCESS;
+          } else {
+            return Status.RUNNING;
+          }
+        } else {
+          if (table.asUnkeyedTable().refs().containsKey(branch)) {
+            return Status.SUCCESS;
+          } else {
+            return Status.RUNNING;
+          }
+        }
+      }, WAIT_SUCCESS_TIMEOUT);
+    } catch (TimeoutException t) {
+      throw new IllegalStateException("wait branch timeout " + branch);
+    }
+  }
+
+  protected void checkTagExist(ArcticTable table, String tag) {
+    if (table.isUnkeyedTable()) {
+      Assert.assertTrue(table.asUnkeyedTable().refs().containsKey(tag));
+    } else {
+      Assert.assertTrue(table.asKeyedTable().baseTable().refs().containsKey(tag));
+    }
+  }
+  
+  protected void checkBranchNotExist(ArcticTable table, String branch) {
+    if (table.isUnkeyedTable()) {
+      Assert.assertFalse(table.asUnkeyedTable().refs().containsKey(branch));
+    } else {
+      Assert.assertFalse(table.asKeyedTable().changeTable().refs().containsKey(branch));
+      Assert.assertFalse(table.asKeyedTable().baseTable().refs().containsKey(branch));
+    }
   }
 
   protected OptimizingProcessMeta waitOptimizeResult() {

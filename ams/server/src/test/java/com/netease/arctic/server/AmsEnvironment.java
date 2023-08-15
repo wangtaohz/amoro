@@ -295,6 +295,8 @@ public class AmsEnvironment {
             serviceConfig.set(ArcticManagementConf.TABLE_SERVICE_THRIFT_BIND_PORT, tableServiceBindPort);
             serviceConfig.set(ArcticManagementConf.OPTIMIZING_SERVICE_THRIFT_BIND_PORT, optimizingServiceBindPort);
             serviceConfig.set(ArcticManagementConf.REFRESH_EXTERNAL_CATALOGS_INTERVAL, 1000L);
+            serviceConfig.set(ArcticManagementConf.REFRESH_EXTERNAL_CATALOGS_INTERVAL, 1000L);
+            serviceConfig.set(ArcticManagementConf.CHECK_TAGS_INTERVAL, 1000L);
             arcticService.startService();
             break;
           } catch (TTransportException e) {

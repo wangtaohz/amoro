@@ -36,7 +36,7 @@ public abstract class PartitionTransactionOperation implements PendingUpdate<Sta
 
   KeyedTable keyedTable;
   private Transaction tx;
-  private boolean skipEmptyCommit = false;
+  protected boolean skipEmptyCommit = false;
 
   protected final Map<String, String> properties;
 

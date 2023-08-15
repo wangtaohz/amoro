@@ -100,9 +100,9 @@ public class IcebergTableUtil {
         if (todayBranchToOptimize != null) {
           Snapshot snapshot = arcticTable.asKeyedTable().baseTable().snapshot(todayBranchToOptimize);
           Snapshot changeSnapshot = arcticTable.asKeyedTable().changeTable().snapshot(todayBranchToOptimize);
-          return new KeyedTableSnapshot(snapshot.snapshotId(),
-              changeSnapshot == null ? ArcticServiceConstants.INVALID_SNAPSHOT_ID : changeSnapshot.snapshotId(),
-              todayBranchToOptimize);
+          if (changeSnapshot != null) {
+            return new KeyedTableSnapshot(snapshot.snapshotId(), changeSnapshot.snapshotId(), todayBranchToOptimize);
+          }
         }
       }
       return new KeyedTableSnapshot(tableRuntime.getCurrentSnapshotId(),

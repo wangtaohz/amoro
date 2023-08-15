@@ -313,6 +313,9 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
   @Override
   public void commit() {
     super.commit();
+    if (this.skipEmptyCommit && isEmptyCommit()) {
+      return;
+    }
     if (branch != null && this.keyedTable.isKeyedTable()) {
       try {
         this.keyedTable.changeTable().manageSnapshots().removeBranch(branch).commit();

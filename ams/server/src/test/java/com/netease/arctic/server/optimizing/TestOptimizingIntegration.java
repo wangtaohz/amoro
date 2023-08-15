@@ -1,5 +1,6 @@
 package com.netease.arctic.server.optimizing;
 
+import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.server.AmsEnvironment;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.KeyedTable;
@@ -43,8 +44,10 @@ public class TestOptimizingIntegration {
       TableIdentifier.of(AmsEnvironment.MIXED_ICEBERG_CATALOG, DATABASE, "mix_iceberg_table7");
   private static final TableIdentifier MIXED_HIVE_TB_1 =
       TableIdentifier.of(AmsEnvironment.MIXED_HIVE_CATALOG, DATABASE, "mix_hive_table1");
-  private static final TableIdentifier MIXED_HIVE_TB_2 = TableIdentifier.of(AmsEnvironment.MIXED_HIVE_CATALOG,
-      DATABASE, "mix_hive_table2");
+  private static final TableIdentifier MIXED_HIVE_TB_2 = 
+      TableIdentifier.of(AmsEnvironment.MIXED_HIVE_CATALOG, DATABASE, "mix_hive_table2");
+  private static final TableIdentifier MIXED_HIVE_TB_3 =
+      TableIdentifier.of(AmsEnvironment.MIXED_HIVE_CATALOG, DATABASE, "mix_hive_table3");
   private static final Schema SCHEMA = new Schema(
       Types.NestedField.required(1, "id", Types.IntegerType.get()),
       Types.NestedField.required(2, "name", Types.StringType.get()),
@@ -121,7 +124,7 @@ public class TestOptimizingIntegration {
 
   @Test
   public void testHiveKeyedTableMajorOptimizeNotMove() throws TException, IOException {
-    createHiveArcticTable(MIXED_HIVE_TB_1, PRIMARY_KEY, PartitionSpec.unpartitioned());
+    createHiveArcticTable(MIXED_HIVE_TB_1, PRIMARY_KEY, PartitionSpec.unpartitioned(), false);
     assertTableExist(MIXED_HIVE_TB_1);
     KeyedTable table = amsEnv.catalog(AmsEnvironment.MIXED_HIVE_CATALOG).loadTable(MIXED_HIVE_TB_1).asKeyedTable();
     TestMixedHiveOptimizing testCase =
@@ -131,12 +134,22 @@ public class TestOptimizingIntegration {
 
   @Test
   public void testHiveKeyedTableMajorOptimizeAndMove() throws TException, IOException {
-    createHiveArcticTable(MIXED_HIVE_TB_2, PRIMARY_KEY, PartitionSpec.unpartitioned());
+    createHiveArcticTable(MIXED_HIVE_TB_2, PRIMARY_KEY, PartitionSpec.unpartitioned(), false);
     assertTableExist(MIXED_HIVE_TB_2);
     KeyedTable table = amsEnv.catalog(AmsEnvironment.MIXED_HIVE_CATALOG).loadTable(MIXED_HIVE_TB_2).asKeyedTable();
     TestMixedHiveOptimizing testCase =
         new TestMixedHiveOptimizing(table, amsEnv.getTestHMS().getClient());
     testCase.testHiveKeyedTableMajorOptimizeAndMove();
+  }
+
+  @Test
+  public void testFullSnapshotHiveKeyedTable() throws TException, IOException, InterruptedException {
+    createHiveArcticTable(MIXED_HIVE_TB_3, PRIMARY_KEY, PartitionSpec.unpartitioned(), true);
+    assertTableExist(MIXED_HIVE_TB_3);
+    KeyedTable table = amsEnv.catalog(AmsEnvironment.MIXED_HIVE_CATALOG).loadTable(MIXED_HIVE_TB_3).asKeyedTable();
+    TestMixedHiveOptimizing testCase =
+        new TestMixedHiveOptimizing(table, amsEnv.getTestHMS().getClient());
+    testCase.testFullSnapshotHiveKeyedTable();
   }
 
   private ArcticTable createArcticTable(
@@ -154,13 +167,20 @@ public class TestOptimizingIntegration {
 
   private void createHiveArcticTable(
       TableIdentifier tableIdentifier, PrimaryKeySpec primaryKeySpec,
-      PartitionSpec partitionSpec) {
+      PartitionSpec partitionSpec, boolean fullSnapshotHiveTable) {
     TableBuilder tableBuilder =
         amsEnv.catalog(AmsEnvironment.MIXED_HIVE_CATALOG).newTableBuilder(tableIdentifier, SCHEMA)
             .withPrimaryKeySpec(primaryKeySpec)
             .withPartitionSpec(partitionSpec)
             .withProperty(TableProperties.SELF_OPTIMIZING_MINOR_TRIGGER_INTERVAL, "1000");
 
+    if (fullSnapshotHiveTable) {
+      tableBuilder
+          .withProperty(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION,
+              HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION_MODE_TAG)
+          .withProperty(TableProperties.ENABLE_AUTO_CREATE_TAG, "true")
+          .withProperty(TableProperties.AUTO_CREATE_TAG_OPTIMIZE_ENABLED, "true");
+    }
     tableBuilder.create();
   }
 

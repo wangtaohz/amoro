@@ -189,6 +189,11 @@ public class ArcticTransaction implements Transaction {
     tableTracer().ifPresent(AmsTableTracer::commit);
   }
 
+  @Override
+  public ManageSnapshots manageSnapshots() {
+    return transaction.manageSnapshots();
+  }
+
   private Optional<AmsTableTracer> tableTracer() {
     return Optional.ofNullable(tracer);
   }

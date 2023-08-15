@@ -96,17 +96,23 @@ public class ArcticManagementConf {
           .defaultValue(10)
           .withDescription("The number of threads used for refreshing tables.");
 
+  public static final ConfigOption<Long> REFRESH_TABLES_INTERVAL =
+      ConfigOptions.key("refresh-tables.interval")
+          .longType()
+          .defaultValue(60000L)
+          .withDescription("Interval for refreshing table metadata.");
+
   public static final ConfigOption<Integer> CHECK_TAGS_THREAD_COUNT =
       ConfigOptions.key("check-tags.thread-count")
           .intType()
           .defaultValue(3)
           .withDescription("The number of threads used for check tags.");
 
-  public static final ConfigOption<Long> REFRESH_TABLES_INTERVAL =
-      ConfigOptions.key("refresh-tables.interval")
+  public static final ConfigOption<Long> CHECK_TAGS_INTERVAL =
+      ConfigOptions.key("check-tags.interval")
           .longType()
           .defaultValue(60000L)
-          .withDescription("Interval for refreshing table metadata.");
+          .withDescription("Interval for checking tags.");
 
   public static final ConfigOption<Long> BLOCKER_TIMEOUT =
       ConfigOptions.key("blocker.timeout")

@@ -23,6 +23,10 @@ ams:
   refresh-tables:
     thread-count: 10
     interval: 60000 # 1min
+  
+  check-tags:
+    thread-count: 3
+    interval: 60000 # 1min
     
   self-optimizing:
     commit-thread-count: 10

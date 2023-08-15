@@ -41,7 +41,8 @@ public class AsyncTableExecutors {
         conf.getInteger(ArcticManagementConf.REFRESH_TABLES_THREAD_COUNT),
         conf.getLong(ArcticManagementConf.REFRESH_TABLES_INTERVAL));
     this.tagsCheckingExecutor = new TagsCheckingExecutor(tableManager,
-        conf.getInteger(ArcticManagementConf.CHECK_TAGS_THREAD_COUNT));
+        conf.getInteger(ArcticManagementConf.CHECK_TAGS_THREAD_COUNT),
+        conf.getLong(ArcticManagementConf.CHECK_TAGS_INTERVAL));
   }
 
   public SnapshotsExpiringExecutor getSnapshotsExpiringExecutor() {

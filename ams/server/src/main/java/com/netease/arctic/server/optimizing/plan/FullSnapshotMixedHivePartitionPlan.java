@@ -95,7 +95,7 @@ public class FullSnapshotMixedHivePartitionPlan extends MixedIcebergPartitionPla
       String branchFormat =
           PropertyUtil.propertyAsString(tableObject.properties(), TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT,
               TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT);
-      LocalDate dateOfRef = RefUtil.getDateOfRef(partition, branchFormat);
+      LocalDate dateOfRef = RefUtil.getDateOfRef(branch, branchFormat);
       String formattedPartitionDate = dateOfRef.format(DateTimeFormatter.ofPattern(partitionDateFormat));
       customHiveSubdirectory = HiveTableProperties.TAG_DEFAULT_COLUMN_NAME + "=" + formattedPartitionDate;
     }

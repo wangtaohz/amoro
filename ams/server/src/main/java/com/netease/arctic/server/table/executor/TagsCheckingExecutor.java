@@ -26,6 +26,7 @@ import com.netease.arctic.table.ChangeTable;
 import com.netease.arctic.table.KeyedTable;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.table.UnkeyedTable;
+import com.netease.arctic.trace.SnapshotSummary;
 import com.netease.arctic.utils.CompatiblePropertyUtil;
 import com.netease.arctic.utils.RefUtil;
 import org.apache.iceberg.Snapshot;
@@ -44,15 +45,16 @@ import java.util.Map;
 public class TagsCheckingExecutor extends BaseTableExecutor {
   private static final Logger LOG = LoggerFactory.getLogger(TagsCheckingExecutor.class);
 
-  private static final long INTERVAL = 60 * 1000L; // 1min
+  private final long interval;
 
-  protected TagsCheckingExecutor(TableManager tableManager, int poolSize) {
+  protected TagsCheckingExecutor(TableManager tableManager, int poolSize, long interval) {
     super(tableManager, poolSize);
+    this.interval = interval;
   }
 
   @Override
   protected long getNextExecutingTime(TableRuntime tableRuntime) {
-    return INTERVAL;
+    return interval;
   }
 
   @Override
@@ -225,6 +227,9 @@ public class TagsCheckingExecutor extends BaseTableExecutor {
     private static Snapshot findSnapshot(Table table, long tagTriggerTime) {
       Iterable<Snapshot> snapshots = table.snapshots();
       for (Snapshot snapshot : snapshots) {
+        if (snapshot.summary().containsKey(SnapshotSummary.TRANSACTION_BEGIN_SIGNATURE)) {
+          continue;
+        }
         long waterMark = getWaterMark(table, snapshot);
         if (waterMark > tagTriggerTime) {
           return snapshot;

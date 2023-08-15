@@ -177,6 +177,11 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
   }
 
   @Override
+  public Object updateEvent() {
+    return delegate.updateEvent();
+  }
+
+  @Override
   public void commit() {
     // in seconds
     int commitTimestamp = (int) (System.currentTimeMillis() / 1000);

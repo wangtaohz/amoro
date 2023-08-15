@@ -240,37 +240,17 @@ public abstract class AbstractOptimizingTest {
   }
 
   protected static List<DataFile> writeBase(ArcticTable table, List<Record> insertRows) {
+    List<DataFile> insertFiles = DataTestHelpers.writeBaseStore(table, 0L, insertRows, false);
     UnkeyedTable baseTable;
     if (table.isUnkeyedTable()) {
       baseTable = table.asUnkeyedTable();
     } else {
       baseTable = table.asKeyedTable().baseTable();
     }
-    List<DataFile> insertFiles = write(baseTable, insertRows);
     AppendFiles appendFiles = baseTable.newAppend();
     insertFiles.forEach(appendFiles::appendFile);
     appendFiles.commit();
     return insertFiles;
-  }
-
-  protected static List<DataFile> write(UnkeyedTable table, List<Record> rows) {
-    if (rows != null && !rows.isEmpty()) {
-      try (TaskWriter<Record> writer = AdaptHiveGenericTaskWriterBuilder.builderFor(table)
-          .withChangeAction(ChangeAction.INSERT)
-          .buildWriter(WriteOperationKind.APPEND)) {
-        rows.forEach(row -> {
-          try {
-            writer.write(row);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
-        });
-        return Arrays.asList(writer.complete().dataFiles());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return Collections.emptyList();
   }
 
   protected static List<DataFile> write(List<Record> rows, KeyedTable table, ChangeAction action, Long txId) {

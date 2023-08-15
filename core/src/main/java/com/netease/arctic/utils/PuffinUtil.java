@@ -162,7 +162,7 @@ public class PuffinUtil {
     private StructLikeMap<Long> read(String type) {
       StatisticsFile statisticsFile = findStatisticsFile(type);
       if (statisticsFile == null) {
-        return null;
+        return StructLikeMap.create(table.spec().partitionType());
       }
       try (PuffinReader puffin = Puffin.read(table.io().newInputFile(statisticsFile.path())).build()) {
         FileMetadata fileMetadata = puffin.fileMetadata();
@@ -208,7 +208,7 @@ public class PuffinUtil {
         }
         // seek parent snapshot
         Snapshot snapshot = table.snapshot(snapshotId);
-        if (snapshot == null) {
+        if (snapshot == null || snapshot.parentId() == null) {
           return null;
         } else {
           snapshotId = snapshot.parentId();

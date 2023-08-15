@@ -47,8 +47,8 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
   private TaskSplitter taskSplitter;
 
   protected ArcticTable tableObject;
-  private long fromSequence = INVALID_SEQUENCE;
-  private long toSequence = INVALID_SEQUENCE;
+  private Long fromSequence;
+  private Long toSequence;
   protected final long planTime;
 
   protected final Map<IcebergDataFile, List<IcebergContentFile<?>>> fragmentFiles = Maps.newHashMap();
@@ -158,19 +158,19 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
   }
 
   protected void markSequence(long sequence) {
-    if (fromSequence == INVALID_SEQUENCE || fromSequence > sequence) {
+    if (fromSequence == null || fromSequence > sequence) {
       fromSequence = sequence;
     }
-    if (toSequence == INVALID_SEQUENCE || toSequence < sequence) {
+    if (toSequence == null || toSequence < sequence) {
       toSequence = sequence;
     }
   }
 
-  public long getFromSequence() {
+  public Long getFromSequence() {
     return fromSequence;
   }
 
-  public long getToSequence() {
+  public Long getToSequence() {
     return toSequence;
   }
 
