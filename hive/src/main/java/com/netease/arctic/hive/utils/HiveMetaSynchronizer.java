@@ -54,6 +54,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -240,6 +242,9 @@ public class HiveMetaSynchronizer {
       for (int i = 0; i < hivePartitions.size(); i++) {
         Partition hivePartition = hivePartitions.get(i);
         String hivePartitionName = hivePartitionNames.get(i);
+        if (hivePartitionName.endsWith("curr_day_full")) {
+          continue;
+        }
         List<DataFile> hiveDataFiles = HiveMetaSynchronizer.listHivePartitionFiles(
             table, Maps.newHashMap(), hivePartition.getSd().getLocation());
         overwriteTableWithTag(table, hiveDataFiles, hivePartitionName);
@@ -357,11 +362,27 @@ public class HiveMetaSynchronizer {
         long txId = table.asKeyedTable().beginTransaction(null);
         OverwriteBaseFiles overwriteBaseFiles = table.asKeyedTable().newOverwriteBaseFiles();
         overwriteBaseFiles.set(OverwriteHiveFiles.PROPERTIES_VALIDATE_LOCATION, "false");
+        List<DataFile> filesToDelete = new ArrayList<>();
+        long startTime = System.currentTimeMillis();
+        try (CloseableIterable<FileScanTask> fileScanTasks = table.asKeyedTable().baseTable().newScan().planFiles()) {
+          fileScanTasks.forEach(fileScanTask -> filesToDelete.add(fileScanTask.file()));
+        } catch (IOException e) {
+          throw new UncheckedIOException("Failed to close table scan of " + table.name(), e);
+        }
+        LOG.info("Table {} scan files cost {} ms", table.id(), System.currentTimeMillis() - startTime);
+        filesToDelete.forEach(overwriteBaseFiles::deleteFile);
         filesToAdd.forEach(overwriteBaseFiles::addFile);
         overwriteBaseFiles.updateOptimizedSequenceDynamically(txId);
         overwriteBaseFiles.commit();
+        LocalDate date = LocalDate.parse(partitionName.substring(partitionName.lastIndexOf("=") + 1),
+            DateTimeFormatter.ofPattern(table.properties().getOrDefault(
+            HiveTableProperties.HIVE_PARTITION_FORMAT,
+            HiveTableProperties.HIVE_PARTITION_FORMAT_DEFAULT)));
+        String tagName = date.format(DateTimeFormatter.ofPattern(
+            table.properties().getOrDefault(TableProperties.AUTO_CREATE_TAG_FORMAT,
+            TableProperties.AUTO_CREATE_TAG_FORMAT_DEFAULT)));
         table.asKeyedTable().baseTable().manageSnapshots()
-            .createTag(partitionName, table.asKeyedTable().baseTable().currentSnapshot().snapshotId()).commit();
+            .createTag(tagName, table.asKeyedTable().baseTable().currentSnapshot().snapshotId()).commit();
       } else {
         throw new RuntimeException("rewriteTableWithTag only support unkeyed table");
       }
