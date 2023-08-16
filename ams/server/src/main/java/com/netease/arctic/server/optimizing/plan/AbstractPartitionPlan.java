@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public abstract class AbstractPartitionPlan implements PartitionEvaluator {
-  public static final int INVALID_SEQUENCE = -1;
 
   protected final String partition;
   protected final OptimizingConfig config;
@@ -47,8 +46,8 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
   private TaskSplitter taskSplitter;
 
   protected ArcticTable tableObject;
-  private Long fromSequence;
-  private Long toSequence;
+  private Long fromSequence = null;
+  private Long toSequence = null;
   protected final long planTime;
 
   protected final Map<IcebergDataFile, List<IcebergContentFile<?>>> fragmentFiles = Maps.newHashMap();
