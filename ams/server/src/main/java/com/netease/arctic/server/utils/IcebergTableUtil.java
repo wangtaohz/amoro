@@ -96,12 +96,12 @@ public class IcebergTableUtil {
       if (tableRuntime.getOptimizingConfig().isOptimizingTag()) {
         Preconditions.checkArgument(TableTypeUtil.isFullSnapshotHiveTable(arcticTable),
             "Only full snapshot hive table support optimizing tag");
-        String todayBranchToOptimize = findDayBranchToOptimize(LocalDate.now(), arcticTable);
-        if (todayBranchToOptimize != null) {
-          Snapshot snapshot = arcticTable.asKeyedTable().baseTable().snapshot(todayBranchToOptimize);
-          Snapshot changeSnapshot = arcticTable.asKeyedTable().changeTable().snapshot(todayBranchToOptimize);
+        String branchToOptimize = findDayBranchToOptimize(LocalDate.now(), arcticTable);
+        if (branchToOptimize != null) {
+          Snapshot snapshot = arcticTable.asKeyedTable().baseTable().snapshot(branchToOptimize);
+          Snapshot changeSnapshot = arcticTable.asKeyedTable().changeTable().snapshot(branchToOptimize);
           if (changeSnapshot != null) {
-            return new KeyedTableSnapshot(snapshot.snapshotId(), changeSnapshot.snapshotId(), todayBranchToOptimize);
+            return new KeyedTableSnapshot(snapshot.snapshotId(), changeSnapshot.snapshotId(), branchToOptimize);
           }
         }
       }
@@ -111,21 +111,23 @@ public class IcebergTableUtil {
   }
 
   private static String findDayBranchToOptimize(LocalDate now, ArcticTable arcticTable) {
-    String todayTag = RefUtil.getDayTagName(now.minusDays(1), arcticTable.properties());
-    String todayBranch = RefUtil.getDayBranchName(now.minusDays(1), arcticTable.properties());
-    Table table;
-    if (arcticTable.isUnkeyedTable()) {
-      table = arcticTable.asUnkeyedTable();
-    } else {
-      table = arcticTable.asKeyedTable().baseTable();
+    // only handle the last 7 days
+    for (int i = 7; i > 0; i--) {
+      String todayTag = RefUtil.getDayTagName(now.minusDays(i), arcticTable.properties());
+      String todayBranch = RefUtil.getDayBranchName(now.minusDays(i), arcticTable.properties());
+      Table table;
+      if (arcticTable.isUnkeyedTable()) {
+        table = arcticTable.asUnkeyedTable();
+      } else {
+        table = arcticTable.asKeyedTable().baseTable();
+      }
+      Set<String> refs = table.refs().keySet();
+      // find today branch, but not today tag
+      if (refs.contains(todayBranch) && !refs.contains(todayTag)) {
+        return todayBranch;
+      }
     }
-    Set<String> refs = table.refs().keySet();
-    // find today branch, but not today tag
-    if (refs.contains(todayBranch) && !refs.contains(todayTag)) {
-      return todayBranch;
-    } else {
-      return null;
-    }
+    return null;
   }
 
   public static Snapshot getSnapshot(UnkeyedTable internalTable, boolean refresh) {
