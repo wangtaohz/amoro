@@ -85,19 +85,21 @@ public class FullSnapshotMixedHivePartitionPlan extends MixedIcebergPartitionPla
       }
     }
   }
-  
+
 
   private String constructCustomHiveSubdirectory() {
     if (customHiveSubdirectory == null) {
       String partitionDateFormat =
           PropertyUtil.propertyAsString(tableObject.properties(), HiveTableProperties.HIVE_PARTITION_FORMAT,
               HiveTableProperties.HIVE_PARTITION_FORMAT_DEFAULT);
+      String hivePartitionColumn = PropertyUtil.propertyAsString(tableObject.properties(),
+          HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN, HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN_DEFAULT);
       String branchFormat =
           PropertyUtil.propertyAsString(tableObject.properties(), TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT,
               TableProperties.AUTO_CREATE_TAG_BRANCH_FORMAT_DEFAULT);
       LocalDate dateOfRef = RefUtil.getDateOfRef(branch, branchFormat);
       String formattedPartitionDate = dateOfRef.format(DateTimeFormatter.ofPattern(partitionDateFormat));
-      customHiveSubdirectory = HiveTableProperties.TAG_DEFAULT_COLUMN_NAME + "=" + formattedPartitionDate;
+      customHiveSubdirectory = hivePartitionColumn + "=" + formattedPartitionDate;
     }
     return customHiveSubdirectory;
   }
