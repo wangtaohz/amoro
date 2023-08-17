@@ -128,6 +128,7 @@ public class TestMixedIcebergOptimizing extends AbstractOptimizingTest {
   public void testPkTableMajorOptimizeLeftPosDelete() {
     KeyedTable table = arcticTable.asKeyedTable();
     updateProperties(table, TableProperties.ENABLE_SELF_OPTIMIZING, "false");
+    updateProperties(table,TableProperties.BASE_FILE_INDEX_HASH_BUCKET, 1 + "");
     // Step1: insert base data
     StringBuilder stringBuilder = new StringBuilder();
     for (int i = 0; i < 100; i++) {
@@ -164,6 +165,7 @@ public class TestMixedIcebergOptimizing extends AbstractOptimizingTest {
         newRecord(25, "ggg" + longString, quickDateWithZone(4)),
         newRecord(29, "hhh" + longString, quickDateWithZone(4))
     ));
+    updateProperties(table,TableProperties.BASE_FILE_INDEX_HASH_BUCKET, 4 + "");
     updateProperties(table, TableProperties.ENABLE_SELF_OPTIMIZING, "true");
     updateProperties(table, TableProperties.SELF_OPTIMIZING_FULL_TRIGGER_INTERVAL, "1000");
 
