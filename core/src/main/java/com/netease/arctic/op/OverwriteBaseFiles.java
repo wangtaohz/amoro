@@ -163,7 +163,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
   }
 
   @Override
-  protected StatisticsFile apply(Transaction transaction) {
+  protected List<StatisticsFile> apply(Transaction transaction) {
     Preconditions.checkState(this.dynamic != null,
         "updateOptimizedSequence() or updateOptimizedSequenceDynamically() must be invoked");
     applyDeleteExpression();
@@ -174,8 +174,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
     }
 
     UnkeyedTable baseTable = keyedTable.baseTable();
-    CreateSnapshotEvent newSnapshot = null;
-    CreateSnapshotEvent lastSnapshot = null;
+    List<CreateSnapshotEvent> newSnapshots = Lists.newArrayList();
 
     // step1: overwrite data files
     if (!this.addFiles.isEmpty() || !this.deleteFiles.isEmpty()) {
@@ -206,15 +205,14 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
         properties.forEach(overwriteFiles::set);
       }
       overwriteFiles.commit();
-      newSnapshot = (CreateSnapshotEvent) overwriteFiles.updateEvent();
-      lastSnapshot = (CreateSnapshotEvent) overwriteFiles.updateEvent();
+      newSnapshots.add((CreateSnapshotEvent) overwriteFiles.updateEvent());
     }
 
     // step2: RowDelta/Rewrite pos-delete files
     if (CollectionUtils.isNotEmpty(addDeleteFiles) || CollectionUtils.isNotEmpty(deleteDeleteFiles)) {
       if (CollectionUtils.isEmpty(deleteDeleteFiles)) {
         RowDelta rowDelta = transaction.newRowDelta();
-        if (branch == null) {
+        if (branch != null) {
           rowDelta = rowDelta.toBranch(branch);
         }
         if (baseTable.currentSnapshot() != null) {
@@ -232,10 +230,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
           properties.forEach(rowDelta::set);
         }
         rowDelta.commit();
-        lastSnapshot = (CreateSnapshotEvent) rowDelta.updateEvent();
-        if (newSnapshot == null) {
-          newSnapshot = (CreateSnapshotEvent) rowDelta.updateEvent();
-        }
+        newSnapshots.add((CreateSnapshotEvent) rowDelta.updateEvent());
       } else {
         RewriteFiles rewriteFiles = transaction.newRewrite();
         if (branch != null) {
@@ -259,14 +254,11 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
           properties.forEach(rewriteFiles::set);
         }
         rewriteFiles.commit();
-        lastSnapshot = (CreateSnapshotEvent) rewriteFiles.updateEvent();
-        if (newSnapshot == null) {
-          newSnapshot = (CreateSnapshotEvent) rewriteFiles.updateEvent();
-        }
+        newSnapshots.add((CreateSnapshotEvent) rewriteFiles.updateEvent());
       }
     }
-    if (newSnapshot == null) {
-      return null;
+    if (newSnapshots.isEmpty()) {
+      return Collections.emptyList();
     }
 
     // step3: remove branch create tag
@@ -274,7 +266,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
       transaction.manageSnapshots().removeBranch(branch).commit();
       LocalDate date = RefUtil.getDateOfBranch(branch, keyedTable.properties());
       String tag = RefUtil.getDayTagName(date, keyedTable.properties());
-      transaction.manageSnapshots().createTag(tag, lastSnapshot.snapshotId()).commit();
+      transaction.manageSnapshots().createTag(tag, newSnapshots.get(newSnapshots.size() - 1).snapshotId()).commit();
     }
 
     // step2: set optimized sequence id, optimized time
@@ -302,12 +294,22 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
       optimizedTime.put(partition, commitTime);
     });
 
-
-    return PuffinUtil.writer(transaction.table(), newSnapshot.snapshotId(), newSnapshot.sequenceNumber())
-        .addOptimizedSequence(optimizedSequence)
-        .addBaseOptimizedTime(optimizedTime)
-        .overwrite()
-        .write();
+    StatisticsFile statisticsFile = null;
+    List<StatisticsFile> result = Lists.newArrayList();
+    for (CreateSnapshotEvent newSnapshot : newSnapshots) {
+      if (statisticsFile != null) {
+        result.add(PuffinUtil.copyToSnapshot(statisticsFile, newSnapshot.snapshotId()));
+      } else {
+        statisticsFile =
+            PuffinUtil.writer(transaction.table(), newSnapshot.snapshotId(), newSnapshot.sequenceNumber())
+                .addOptimizedSequence(optimizedSequence)
+                .addBaseOptimizedTime(optimizedTime)
+                .overwrite()
+                .write();
+        result.add(statisticsFile);
+      }
+    }
+    return result;
   }
 
   @Override
