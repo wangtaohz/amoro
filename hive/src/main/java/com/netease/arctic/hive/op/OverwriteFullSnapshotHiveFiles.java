@@ -22,8 +22,10 @@ import com.netease.arctic.hive.HMSClientPool;
 import com.netease.arctic.hive.HiveTableProperties;
 import com.netease.arctic.hive.table.UnkeyedHiveTable;
 import com.netease.arctic.hive.utils.HivePartitionUtil;
+import com.netease.arctic.io.ArcticHadoopFileIO;
 import com.netease.arctic.utils.RefUtil;
 import com.netease.arctic.utils.TableFileUtil;
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.iceberg.DataFile;
@@ -35,15 +37,24 @@ import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.util.PropertyUtil;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static com.netease.arctic.hive.op.UpdateHiveFiles.DELETE_UNTRACKED_HIVE_FILE;
 
 public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
+  private static final Logger LOG = LoggerFactory.getLogger(OverwriteFullSnapshotHiveFiles.class);
+
   private final Transaction transaction;
   private final boolean insideTransaction;
   private final UnkeyedHiveTable table;
@@ -54,10 +65,12 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
   protected final String tableName;
 
   protected final Table hiveTable;
+  private boolean checkOrphanFiles = false;
 
   private String branch;
   private String fileLocation;
-  private final List<DataFile> dataFiles = Lists.newArrayList();
+  private final List<DataFile> addFiles = Lists.newArrayList();
+  private final List<DataFile> deleteFiles = Lists.newArrayList();
 
   public OverwriteFullSnapshotHiveFiles(Transaction transaction, boolean insideTransaction, UnkeyedHiveTable table,
                                         HMSClientPool hmsClient, HMSClientPool transactionClient) {
@@ -91,7 +104,7 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
       } else {
         Preconditions.checkArgument(fileLocation.equals(fileDir), "All files must be in the same directory");
       }
-      dataFiles.add(file);
+      addFiles.add(file);
     }
     delegate.addFile(file);
     return this;
@@ -99,6 +112,9 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
 
   @Override
   public OverwriteFiles deleteFile(DataFile file) {
+    if (branch != null) {
+      deleteFiles.add(file);
+    }
     delegate.deleteFile(file);
     return this;
   }
@@ -141,6 +157,9 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
 
   @Override
   public OverwriteFiles set(String property, String value) {
+    if (DELETE_UNTRACKED_HIVE_FILE.equals(property)) {
+      this.checkOrphanFiles = Boolean.parseBoolean(value);
+    }
     delegate.set(property, value);
     return this;
   }
@@ -165,10 +184,30 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
 
   @Override
   public OverwriteFiles toBranch(String branch) {
-    Preconditions.checkArgument(dataFiles.isEmpty(), "branch can only be set before add files");
+    Preconditions.checkArgument(addFiles.isEmpty(), "branch can only be set before add files");
     delegate.toBranch(branch);
     this.branch = branch;
     return this;
+  }
+
+  /**
+   * check files in the partition, and delete orphan files
+   */
+  private void checkPartitionedOrphanFilesAndDelete() {
+    Set<String> addFilesPathCollect = addFiles.stream()
+        .map(dataFile -> dataFile.path().toString()).collect(Collectors.toSet());
+    Set<String> deleteFilesPathCollect = deleteFiles.stream()
+        .map(deleteFile -> deleteFile.path().toString()).collect(Collectors.toSet());
+
+    try (ArcticHadoopFileIO io = table.io()) {
+      io.listPrefix(fileLocation).forEach(f -> {
+        if (!addFilesPathCollect.contains(f.location()) &&
+            !deleteFilesPathCollect.contains(f.location())) {
+          io.deleteFile(f.location());
+          LOG.warn("Delete orphan file path: {}", f.location());
+        }
+      });
+    }
   }
 
   @Override
@@ -185,6 +224,9 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
   public void commit() {
     // in seconds
     int commitTimestamp = (int) (System.currentTimeMillis() / 1000);
+    if (branch != null && checkOrphanFiles) {
+      checkPartitionedOrphanFilesAndDelete();
+    }
     delegate.commit();
     if (!insideTransaction) {
       transaction.commitTransaction();
@@ -192,9 +234,30 @@ public class OverwriteFullSnapshotHiveFiles implements OverwriteFiles {
     if (branch != null && fileLocation != null) {
       ArrayList<String> values = Lists.newArrayList();
       values.add(getPartitionValue());
-      Partition partition = HivePartitionUtil.newPartition(hiveTable, values, fileLocation, dataFiles, commitTimestamp);
+      Partition partition = HivePartitionUtil.newPartition(hiveTable, values, fileLocation, addFiles, commitTimestamp);
+      // if partition exist, alter hive partition
       try {
-        transactionClient.run(c -> c.addPartitions(Lists.newArrayList(partition)));
+        hmsClient.run(c -> c.getPartition(db, tableName, partition.getValues()));
+        try {
+          transactionClient.run(c -> {
+            try {
+              c.alterPartition(db, tableName, partition, null);
+            } catch (InvocationTargetException |
+                IllegalAccessException | NoSuchMethodException |
+                ClassNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+            return null;
+          });
+        } catch (TException | InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      } catch (NoSuchObjectException e) {
+        try {
+          transactionClient.run(c -> c.addPartition(partition));
+        } catch (TException | InterruptedException e1) {
+          throw new RuntimeException(e1);
+        }
       } catch (TException | InterruptedException e) {
         throw new RuntimeException(e);
       }

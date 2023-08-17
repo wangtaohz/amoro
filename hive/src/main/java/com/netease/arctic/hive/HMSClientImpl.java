@@ -27,10 +27,13 @@ import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.iceberg.common.DynMethods;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class HMSClientImpl implements HMSClient {
+  private static final Logger LOG = LoggerFactory.getLogger(HMSClientImpl.class);
 
   private HiveMetaStoreClient client;
 
@@ -124,18 +127,25 @@ public class HMSClientImpl implements HMSClient {
 
   @Override
   public Partition addPartition(Partition partition) throws TException {
-    return getClient().add_partition(partition);
+    Partition result = getClient().add_partition(partition);
+    LOG.info("add hive partition success {}.{} {}", partition.getDbName(), partition.getTableName(),
+        partition.getValues());
+    return result;
   }
 
   @Override
   public boolean dropPartition(String dbName, String tblName,
                                List<String> partVals, PartitionDropOptions options) throws TException {
-    return getClient().dropPartition(dbName, tblName, partVals, options);
+    boolean result = getClient().dropPartition(dbName, tblName, partVals, options);
+    LOG.info("drop hive partition success {}.{} {}", dbName, tblName, partVals);
+    return result;
   }
 
   @Override
   public int addPartitions(List<Partition> partitions) throws TException {
-    return getClient().add_partitions(partitions);
+    int result = getClient().add_partitions(partitions);
+    LOG.info("add hive partitions success {}", partitions);
+    return result;
   }
 
 
@@ -152,6 +162,7 @@ public class HMSClientImpl implements HMSClient {
         .impl(HiveMetaStoreClient.class, String.class, String.class, List.class)
         .build();
     alterPartitions.invoke(getClient(), dbName, tblName, newParts, environmentContext);
+    LOG.info("{}.{} alter hive partitions success {}", dbName, tblName, newParts);
   }
 
   @Override
@@ -162,5 +173,6 @@ public class HMSClientImpl implements HMSClient {
         .impl(HiveMetaStoreClient.class, String.class, String.class, Partition.class)
         .build();
     alterPartition.invoke(getClient(), dbName, tblName, newPart, environmentContext);
+    LOG.info("{}.{} alter hive partition success {}", dbName, tblName, newPart);
   }
 }
