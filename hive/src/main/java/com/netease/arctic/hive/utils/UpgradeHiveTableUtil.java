@@ -347,6 +347,11 @@ public class UpgradeHiveTableUtil {
   }
 
   private static boolean isValidDate(String dateString, String dateFormat) {
+
+    if (dateString.endsWith("curr_day_full")) {
+      return true;
+    }
+
     SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
     sdf.setLenient(false);
 
