@@ -113,7 +113,8 @@ public class TestMixedHiveCatalog extends TestMixedCatalog {
     Map<String,String> tableParameter = hiveTable.getParameters();
 
     Assert.assertEquals(1, hiveTable.getPartitionKeys().size());
-    Assert.assertEquals(HiveTableProperties.TAG_DEFAULT_COLUMN_NAME, hiveTable.getPartitionKeys().get(0).getName());
+    Assert.assertEquals(HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN_DEFAULT,
+        hiveTable.getPartitionKeys().get(0).getName());
     Assert.assertTrue(tableParameter.containsKey(ARCTIC_TABLE_ROOT_LOCATION));
     Assert.assertTrue(tableParameter.get(ARCTIC_TABLE_ROOT_LOCATION).endsWith(tbl));
     Assert.assertTrue(tableParameter.containsKey(ARCTIC_TABLE_FLAG));

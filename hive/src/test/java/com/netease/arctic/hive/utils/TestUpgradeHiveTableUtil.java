@@ -99,7 +99,7 @@ public class TestUpgradeHiveTableUtil extends CatalogTestBase {
         .identity("name").identity(HiveTableTestHelper.COLUMN_NAME_OP_DAY).build() : PartitionSpec.unpartitioned();
     Schema schemaB = TypeUtil.join(HiveTableTestHelper.HIVE_TABLE_SCHEMA,
         new Schema(Types.NestedField.optional(HiveTableTestHelper.HIVE_TABLE_SCHEMA.highestFieldId() + 1,
-            HiveTableProperties.TAG_DEFAULT_COLUMN_NAME, Types.StringType.get())));
+            HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN_DEFAULT, Types.StringType.get())));
     PartitionSpec specB = PartitionSpec.builderFor(schemaB).identity("date").build();
     String dbPath = folder.newFolder(db).getAbsolutePath();
     hiveTableA = createHiveTable(db, tableA, HiveTableTestHelper.HIVE_TABLE_SCHEMA, specA, dbPath, false);

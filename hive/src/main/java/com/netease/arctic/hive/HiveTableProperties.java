@@ -48,7 +48,7 @@ public class HiveTableProperties {
       BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION;
 
   public static final String HIVE_EXTRA_PARTITION_COLUMN = "hive.extra-partition-column";
-  public static final String TAG_DEFAULT_COLUMN_NAME = "date";
+  public static final String HIVE_EXTRA_PARTITION_COLUMN_DEFAULT = "date";
 
   public static final String HIVE_PARTITION_FORMAT = "hive.partition-format";
   public static final String HIVE_PARTITION_FORMAT_DEFAULT = "yyyy-MM-dd";

@@ -139,7 +139,7 @@ public class MixedHiveTables extends MixedTables {
         }
       } else {
         tableMeta.putToProperties(HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN,
-            HiveTableProperties.TAG_DEFAULT_COLUMN_NAME);
+            HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN_DEFAULT);
       }
     }
 
@@ -334,7 +334,7 @@ public class MixedHiveTables extends MixedTables {
 
     if (withExtraPartitionColumn) {
       List<FieldSchema> partitionKey = new ArrayList<>();
-      partitionKey.add(new FieldSchema(HiveTableProperties.TAG_DEFAULT_COLUMN_NAME,
+      partitionKey.add(new FieldSchema(HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN_DEFAULT,
           "string","Auto-generated partition keys"));
       newTable.setPartitionKeys(partitionKey);
     }
