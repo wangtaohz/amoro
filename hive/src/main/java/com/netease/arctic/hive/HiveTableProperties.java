@@ -29,6 +29,7 @@ public class HiveTableProperties {
     EXPOSED.add(HiveTableProperties.AUTO_SYNC_HIVE_DATA_WRITE);
     EXPOSED.add(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE);
     EXPOSED.add(HiveTableProperties.BASE_HIVE_PARTITION_PROJECTION);
+    EXPOSED.add(HiveTableProperties.HIVE_PARTITION_FORMAT);
   }
 
   public static final String ARCTIC_TABLE_FLAG = "arctic.enabled";
@@ -46,6 +47,7 @@ public class HiveTableProperties {
   public static final String BASE_HIVE_PARTITION_PROJECTION_MODE_DEFAULT =
       BASE_HIVE_PARTITION_PROJECTION_MODE_PARTITION;
 
+  public static final String HIVE_EXTRA_PARTITION_COLUMN = "hive.extra-partition-column";
   public static final String TAG_DEFAULT_COLUMN_NAME = "date";
 
   public static final String HIVE_PARTITION_FORMAT = "hive.partition-format";

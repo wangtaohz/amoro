@@ -126,6 +126,21 @@ public class MixedHiveTables extends MixedTables {
       tableMeta.putToProperties(HiveTableProperties.AUTO_SYNC_HIVE_SCHEMA_CHANGE, "false");
       tableMeta.putToProperties(TableProperties.ENABLE_AUTO_CREATE_TAG, "true");
       tableMeta.putToProperties(TableProperties.AUTO_CREATE_TAG_OPTIMIZE_ENABLED, "true");
+      if (allowExistedHiveTable) {
+        try {
+          String hivePartitionName = hiveClientPool.run(client -> {
+            org.apache.hadoop.hive.metastore.api.Table hiveTable = client.getTable(tableIdentifier.getDatabase(),
+                tableIdentifier.getTableName());
+            return hiveTable.getPartitionKeys().get(0).getName();
+          });
+          tableMeta.putToProperties(HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN, hivePartitionName);
+        } catch (TException | InterruptedException e) {
+          throw new RuntimeException("Failed to get hive table partition key:" + tableMeta.getTableIdentifier(), e);
+        }
+      } else {
+        tableMeta.putToProperties(HiveTableProperties.HIVE_EXTRA_PARTITION_COLUMN,
+            HiveTableProperties.TAG_DEFAULT_COLUMN_NAME);
+      }
     }
 
     ArcticHadoopFileIO fileIO = ArcticFileIOs.buildRecoverableHadoopFileIO(
