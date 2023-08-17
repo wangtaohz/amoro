@@ -212,7 +212,7 @@ public class OverwriteBaseFiles extends PartitionTransactionOperation {
     if (CollectionUtils.isNotEmpty(addDeleteFiles) || CollectionUtils.isNotEmpty(deleteDeleteFiles)) {
       if (CollectionUtils.isEmpty(deleteDeleteFiles)) {
         RowDelta rowDelta = transaction.newRowDelta();
-        if (branch == null) {
+        if (branch != null) {
           rowDelta = rowDelta.toBranch(branch);
         }
         if (baseTable.currentSnapshot() != null) {
