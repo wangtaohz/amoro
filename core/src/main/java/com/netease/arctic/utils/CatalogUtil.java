@@ -22,6 +22,7 @@ import com.netease.arctic.ams.api.CatalogMeta;
 import com.netease.arctic.ams.api.TableFormat;
 import com.netease.arctic.ams.api.TableMeta;
 import com.netease.arctic.ams.api.properties.CatalogMetaProperties;
+import com.netease.arctic.ams.api.utils.CatalogPropertyUtil;
 import com.netease.arctic.catalog.ArcticCatalog;
 import com.netease.arctic.catalog.BasicIcebergCatalog;
 import com.netease.arctic.io.ArcticFileIO;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
 
 import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_AMS;
 import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_CUSTOM;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_GLUE;
 import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HADOOP;
 import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HIVE;
 
@@ -72,6 +74,7 @@ public class CatalogUtil {
           return Sets.newHashSet(TableFormat.MIXED_ICEBERG);
         case CATALOG_TYPE_CUSTOM:
         case CATALOG_TYPE_HADOOP:
+        case CATALOG_TYPE_GLUE:
           return Sets.newHashSet(TableFormat.ICEBERG);
         case CATALOG_TYPE_HIVE:
           return Sets.newHashSet(TableFormat.MIXED_HIVE);
@@ -101,9 +104,8 @@ public class CatalogUtil {
     TableMetaStore.Builder builder = TableMetaStore.builder();
     if (catalogMeta.getStorageConfigs() != null) {
       Map<String, String> storageConfigs = catalogMeta.getStorageConfigs();
-      if (CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HDFS
-          .equalsIgnoreCase(
-              storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_TYPE))) {
+      if (CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HADOOP
+          .equalsIgnoreCase(CatalogPropertyUtil.getCompatibleStorageType(storageConfigs))) {
         String coreSite = storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_CORE_SITE);
         String hdfsSite = storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_HDFS_SITE);
         String hiveSite = storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_HIVE_SITE);
