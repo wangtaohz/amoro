@@ -82,13 +82,14 @@ public class MixedTables {
     String baseLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_BASE);
     String changeLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_CHANGE);
 
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
     ArcticFileIO fileIO =
         ArcticFileIOs.buildRecoverableHadoopFileIO(
             tableIdentifier,
             tableLocation,
             tableMeta.getProperties(),
             tableMetaStore,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     Table baseIcebergTable = tableMetaStore.doAs(() -> tables.load(baseLocation));
     BaseTable baseTable =
         new BasicKeyedTable.BaseInternalTable(
@@ -96,7 +97,7 @@ public class MixedTables {
             CatalogUtil.useArcticTableOperations(
                 baseIcebergTable, baseLocation, fileIO, tableMetaStore.getConfiguration()),
             fileIO,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
 
     Table changeIcebergTable = tableMetaStore.doAs(() -> tables.load(changeLocation));
     ChangeTable changeTable =
@@ -105,7 +106,7 @@ public class MixedTables {
             CatalogUtil.useArcticTableOperations(
                 changeIcebergTable, changeLocation, fileIO, tableMetaStore.getConfiguration()),
             fileIO,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     PrimaryKeySpec keySpec = buildPrimaryKeySpec(baseTable.schema(), tableMeta);
     return new BasicKeyedTable(tableLocation, keySpec, baseTable, changeTable);
   }
@@ -133,6 +134,7 @@ public class MixedTables {
     String tableLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_TABLE);
     String baseLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_BASE);
     Table table = tableMetaStore.doAs(() -> tables.load(baseLocation));
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
 
     ArcticFileIO fileIO =
         ArcticFileIOs.buildRecoverableHadoopFileIO(
@@ -140,13 +142,13 @@ public class MixedTables {
             tableLocation,
             tableMeta.getProperties(),
             tableMetaStore,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     return new BasicUnkeyedTable(
         tableIdentifier,
         CatalogUtil.useArcticTableOperations(
             table, baseLocation, fileIO, tableMetaStore.getConfiguration()),
         fileIO,
-        catalogMeta.getCatalogProperties());
+        catalogProperties);
   }
 
   public ArcticTable createTableByMeta(
@@ -172,13 +174,14 @@ public class MixedTables {
     String changeLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_CHANGE);
 
     fillTableProperties(tableMeta);
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
     ArcticFileIO fileIO =
         ArcticFileIOs.buildRecoverableHadoopFileIO(
             tableIdentifier,
             tableLocation,
             tableMeta.getProperties(),
             tableMetaStore,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     Table baseIcebergTable =
         tableMetaStore.doAs(
             () -> {
@@ -195,7 +198,7 @@ public class MixedTables {
             CatalogUtil.useArcticTableOperations(
                 baseIcebergTable, baseLocation, fileIO, tableMetaStore.getConfiguration()),
             fileIO,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
 
     Table changeIcebergTable =
         tableMetaStore.doAs(
@@ -213,7 +216,7 @@ public class MixedTables {
             CatalogUtil.useArcticTableOperations(
                 changeIcebergTable, changeLocation, fileIO, tableMetaStore.getConfiguration()),
             fileIO,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     return new BasicKeyedTable(tableLocation, primaryKeySpec, baseTable, changeTable);
   }
 
@@ -237,6 +240,7 @@ public class MixedTables {
     String baseLocation = checkLocation(tableMeta, MetaTableProperties.LOCATION_KEY_BASE);
 
     fillTableProperties(tableMeta);
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
     Table table =
         tableMetaStore.doAs(
             () -> {
@@ -253,13 +257,13 @@ public class MixedTables {
             tableLocation,
             tableMeta.getProperties(),
             tableMetaStore,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     return new BasicUnkeyedTable(
         tableIdentifier,
         CatalogUtil.useArcticTableOperations(
             table, baseLocation, fileIO, tableMetaStore.getConfiguration()),
         fileIO,
-        catalogMeta.getCatalogProperties());
+        catalogProperties);
   }
 
   public void dropTableByMeta(TableMeta tableMeta, boolean purge) {

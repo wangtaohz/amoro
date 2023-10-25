@@ -102,12 +102,13 @@ public class MixedTables {
       Table base, com.netease.arctic.table.TableIdentifier tableIdentifier) {
     ArcticFileIO io = ArcticFileIOs.buildAdaptIcebergFileIO(this.tableMetaStore, base.io());
     PrimaryKeySpec keySpec = getPrimaryKeySpec(base);
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
     if (!keySpec.primaryKeyExisted()) {
       return new BasicUnkeyedTable(
           tableIdentifier,
           useArcticTableOperation(base, io),
           io,
-          catalogMeta.getCatalogProperties());
+          catalogProperties);
     }
     Table changeIcebergTable = loadChangeStore(base);
     BaseTable baseStore =
@@ -115,13 +116,13 @@ public class MixedTables {
             tableIdentifier,
             useArcticTableOperation(base, io),
             io,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     ChangeTable changeStore =
         new BasicKeyedTable.ChangeInternalTable(
             tableIdentifier,
             useArcticTableOperation(changeIcebergTable, io),
             io,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     return new BasicKeyedTable(keySpec, baseStore, changeStore);
   }
 
@@ -153,10 +154,11 @@ public class MixedTables {
     }
     Table base = tableMetaStore.doAs(baseBuilder::create);
     ArcticFileIO io = ArcticFileIOs.buildAdaptIcebergFileIO(this.tableMetaStore, base.io());
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
 
     if (!keySpec.primaryKeyExisted()) {
       return new BasicUnkeyedTable(
-          identifier, useArcticTableOperation(base, io), io, catalogMeta.getCatalogProperties());
+          identifier, useArcticTableOperation(base, io), io, catalogProperties);
     }
 
     Catalog.TableBuilder changeBuilder =
@@ -170,13 +172,13 @@ public class MixedTables {
     Table change = tableMetaStore.doAs(changeBuilder::create);
     BaseTable baseStore =
         new BasicKeyedTable.BaseInternalTable(
-            identifier, useArcticTableOperation(base, io), io, catalogMeta.getCatalogProperties());
+            identifier, useArcticTableOperation(base, io), io, catalogProperties);
     ChangeTable changeStore =
         new BasicKeyedTable.ChangeInternalTable(
             identifier,
             useArcticTableOperation(change, io),
             io,
-            catalogMeta.getCatalogProperties());
+            catalogProperties);
     return new BasicKeyedTable(keySpec, baseStore, changeStore);
   }
 

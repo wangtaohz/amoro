@@ -18,9 +18,6 @@
 
 package com.netease.arctic.catalog;
 
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.AUTH_CONFIGS_VALUE_TYPE_AK_SK;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_S3;
-
 import com.netease.arctic.AmsClient;
 import com.netease.arctic.ams.api.CatalogMeta;
 import com.netease.arctic.ams.api.TableFormat;
@@ -37,12 +34,9 @@ import com.netease.arctic.table.TableIdentifier;
 import com.netease.arctic.table.TableMetaStore;
 import com.netease.arctic.table.blocker.TableBlockerManager;
 import com.netease.arctic.utils.CatalogUtil;
-import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.Transaction;
-import org.apache.iceberg.aws.AwsClientProperties;
-import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
@@ -88,63 +82,28 @@ public class IcebergCatalogWrapper implements ArcticCatalog {
   private void initialize(CatalogMeta meta, Map<String, String> properties) {
     this.meta = meta;
     this.customProperties = properties;
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(meta);
+    meta.setCatalogProperties(catalogProperties);
     CatalogUtil.mergeCatalogProperties(meta, properties);
-    meta.putToCatalogProperties(
-        org.apache.iceberg.CatalogUtil.ICEBERG_CATALOG_TYPE, meta.getCatalogType());
-    this.tableMetaStore = CatalogUtil.buildMetaStore(meta);
-    if (CatalogMetaProperties.CATALOG_TYPE_GLUE.equals(meta.getCatalogType())) {
-      meta.getCatalogProperties()
-          .put(CatalogProperties.CATALOG_IMPL, CatalogLoader.GLUE_CATALOG_IMPL);
-    }
-    if (meta.getCatalogProperties().containsKey(CatalogProperties.CATALOG_IMPL)) {
-      meta.getCatalogProperties().remove(org.apache.iceberg.CatalogUtil.ICEBERG_CATALOG_TYPE);
-    }
-    Map<String, String> authConfigs = meta.getAuthConfigs();
-    if (AUTH_CONFIGS_VALUE_TYPE_AK_SK.equals(
-        authConfigs.get(CatalogMetaProperties.AUTH_CONFIGS_KEY_TYPE))) {
-      CatalogUtil.copyProperty(
-          authConfigs,
-          meta.getCatalogProperties(),
-          CatalogMetaProperties.AUTH_CONFIGS_KEY_ACCESS_KEY,
-          S3FileIOProperties.ACCESS_KEY_ID);
-      CatalogUtil.copyProperty(
-          authConfigs,
-          meta.getCatalogProperties(),
-          CatalogMetaProperties.AUTH_CONFIGS_KEY_SECRET_KEY,
-          S3FileIOProperties.SECRET_ACCESS_KEY);
-    }
-    Map<String, String> storageConfigs = meta.getStorageConfigs();
-    if (STORAGE_CONFIGS_VALUE_TYPE_S3.equals(
-        storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_TYPE))) {
-      CatalogUtil.copyProperty(
-          storageConfigs,
-          meta.getCatalogProperties(),
-          CatalogMetaProperties.STORAGE_CONFIGS_KEY_REGION,
-          AwsClientProperties.CLIENT_REGION);
-      CatalogUtil.copyProperty(
-          storageConfigs,
-          meta.getCatalogProperties(),
-          CatalogMetaProperties.STORAGE_CONFIGS_KEY_ENDPOINT,
-          S3FileIOProperties.ENDPOINT);
-    }
 
-    icebergCatalog =
-        tableMetaStore.doAs(
+    this.tableMetaStore = CatalogUtil.buildMetaStore(meta);
+    this.icebergCatalog =
+        this.tableMetaStore.doAs(
             () ->
                 org.apache.iceberg.CatalogUtil.buildIcebergCatalog(
-                    name(), meta.getCatalogProperties(), tableMetaStore.getConfiguration()));
-    if (meta.getCatalogProperties()
+                    name(), catalogProperties, this.tableMetaStore.getConfiguration()));
+    if (catalogProperties
         .containsKey(CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION)) {
       String databaseFilter =
-          meta.getCatalogProperties()
+          catalogProperties
               .get(CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION);
-      databaseFilterPattern = Pattern.compile(databaseFilter);
+      this.databaseFilterPattern = Pattern.compile(databaseFilter);
     } else {
-      databaseFilterPattern = null;
+      this.databaseFilterPattern = null;
     }
 
-    if (meta.getCatalogProperties().containsKey(CatalogMetaProperties.KEY_TABLE_FILTER)) {
-      String tableFilter = meta.getCatalogProperties().get(CatalogMetaProperties.KEY_TABLE_FILTER);
+    if (catalogProperties.containsKey(CatalogMetaProperties.KEY_TABLE_FILTER)) {
+      String tableFilter = catalogProperties.get(CatalogMetaProperties.KEY_TABLE_FILTER);
       tableFilterPattern = Pattern.compile(tableFilter);
     } else {
       tableFilterPattern = null;
@@ -249,7 +208,7 @@ public class IcebergCatalogWrapper implements ArcticCatalog {
         CatalogUtil.useArcticTableOperations(
             icebergTable, icebergTable.location(), arcticFileIO, tableMetaStore.getConfiguration()),
         arcticFileIO,
-        meta.getCatalogProperties());
+        properties());
   }
 
   @Override
@@ -290,7 +249,7 @@ public class IcebergCatalogWrapper implements ArcticCatalog {
 
   @Override
   public Map<String, String> properties() {
-    return meta.getCatalogProperties();
+    return CatalogUtil.getCompletedCatalogProperties(meta);
   }
 
   public void refreshCatalogMeta(CatalogMeta meta) {
@@ -330,7 +289,7 @@ public class IcebergCatalogWrapper implements ArcticCatalog {
 
       FileIO io = table.io();
       ArcticFileIO arcticFileIO = createArcticFileIO(io);
-      return new BasicIcebergTable(identifier, table, arcticFileIO, meta.getCatalogProperties());
+      return new BasicIcebergTable(identifier, table, arcticFileIO, properties());
     }
 
     @Override

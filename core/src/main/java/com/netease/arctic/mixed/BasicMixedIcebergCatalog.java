@@ -250,7 +250,7 @@ public class BasicMixedIcebergCatalog implements ArcticCatalog {
 
   @Override
   public Map<String, String> properties() {
-    return Maps.newHashMap(this.meta.getCatalogProperties());
+    return Maps.newHashMap(CatalogUtil.getCompletedCatalogProperties(meta));
   }
 
   private org.apache.iceberg.catalog.TableIdentifier toIcebergTableIdentifier(

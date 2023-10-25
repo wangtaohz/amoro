@@ -115,8 +115,9 @@ public class TerminalManager {
     configuration.set(
         SessionConfigOptions.CATALOG_URL_BASE,
         AmsUtil.getAMSThriftAddress(serviceConfig, Constants.THRIFT_TABLE_SERVICE_NAME));
-    for (String key : catalogMeta.getCatalogProperties().keySet()) {
-      String value = catalogMeta.getCatalogProperties().get(key);
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
+    for (String key : catalogProperties.keySet()) {
+      String value = catalogProperties.get(key);
       configuration.set(SessionConfigOptions.catalogProperty(catalog, key), value);
     }
 

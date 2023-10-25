@@ -13,6 +13,7 @@ import com.netease.arctic.server.persistence.mapper.TableMetaMapper;
 import com.netease.arctic.server.table.TableMetadata;
 import com.netease.arctic.server.utils.Configurations;
 import com.netease.arctic.server.utils.IcebergTableUtil;
+import com.netease.arctic.utils.CatalogUtil;
 import org.apache.iceberg.BaseTable;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.TableOperations;
@@ -72,7 +73,7 @@ public class InternalIcebergCatalogImpl extends InternalCatalog {
     return new IcebergTable(
         tableIdentifier,
         new IcebergCatalogWrapper.BasicIcebergTable(
-            tableIdentifier, table, fileIO, getMetadata().getCatalogProperties()));
+            tableIdentifier, table, fileIO, CatalogUtil.getCompletedCatalogProperties(getMetadata())));
   }
 
   private String defaultRestURI() {

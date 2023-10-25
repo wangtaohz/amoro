@@ -18,21 +18,13 @@
 
 package com.netease.arctic.utils;
 
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_AMS;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_CUSTOM;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_GLUE;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HADOOP;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HIVE;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_KEY_TYPE;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HADOOP;
-import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HDFS_LEGACY;
-
 import com.netease.arctic.ams.api.CatalogMeta;
 import com.netease.arctic.ams.api.TableFormat;
 import com.netease.arctic.ams.api.TableMeta;
 import com.netease.arctic.ams.api.properties.CatalogMetaProperties;
 import com.netease.arctic.catalog.ArcticCatalog;
 import com.netease.arctic.catalog.BasicIcebergCatalog;
+import com.netease.arctic.catalog.CatalogLoader;
 import com.netease.arctic.io.ArcticFileIO;
 import com.netease.arctic.op.ArcticHadoopTableOperations;
 import com.netease.arctic.op.ArcticTableOperations;
@@ -43,7 +35,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.iceberg.BaseTable;
+import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.aws.AwsClientProperties;
+import org.apache.iceberg.aws.s3.S3FileIOProperties;
 import org.apache.iceberg.hadoop.HadoopTableOperations;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 import org.apache.iceberg.relocated.com.google.common.collect.Sets;
@@ -56,6 +51,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.AUTH_CONFIGS_VALUE_TYPE_AK_SK;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_AMS;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_CUSTOM;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_GLUE;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HADOOP;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.CATALOG_TYPE_HIVE;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_KEY_TYPE;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HADOOP;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_HDFS_LEGACY;
+import static com.netease.arctic.ams.api.properties.CatalogMetaProperties.STORAGE_CONFIGS_VALUE_TYPE_S3;
 
 public class CatalogUtil {
 
@@ -96,6 +102,58 @@ public class CatalogUtil {
     if (properties != null) {
       properties.forEach(meta::putToCatalogProperties);
     }
+  }
+
+  /**
+   * Merge auth properties and storage properties to catalog properties.
+   *
+   * @param meta catalog meta
+   * @return a completed catalog properties with auth properties and storage properties
+   */
+  public static Map<String, String> getCompletedCatalogProperties(CatalogMeta meta) {
+    Map<String, String> catalogProperties = Maps.newHashMap();
+    if (meta.getCatalogProperties() != null) {
+      catalogProperties.putAll(meta.getCatalogProperties());
+    }
+    catalogProperties.put(org.apache.iceberg.CatalogUtil.ICEBERG_CATALOG_TYPE, meta.getCatalogType());
+
+    if (CatalogMetaProperties.CATALOG_TYPE_GLUE.equals(meta.getCatalogType())) {
+      catalogProperties
+          .put(CatalogProperties.CATALOG_IMPL, CatalogLoader.GLUE_CATALOG_IMPL);
+    }
+    if (catalogProperties.containsKey(CatalogProperties.CATALOG_IMPL)) {
+      catalogProperties.remove(org.apache.iceberg.CatalogUtil.ICEBERG_CATALOG_TYPE);
+    }
+    Map<String, String> authConfigs = meta.getAuthConfigs();
+    if (AUTH_CONFIGS_VALUE_TYPE_AK_SK.equals(
+        authConfigs.get(CatalogMetaProperties.AUTH_CONFIGS_KEY_TYPE))) {
+      CatalogUtil.copyProperty(
+          authConfigs,
+          catalogProperties,
+          CatalogMetaProperties.AUTH_CONFIGS_KEY_ACCESS_KEY,
+          S3FileIOProperties.ACCESS_KEY_ID);
+      CatalogUtil.copyProperty(
+          authConfigs,
+          catalogProperties,
+          CatalogMetaProperties.AUTH_CONFIGS_KEY_SECRET_KEY,
+          S3FileIOProperties.SECRET_ACCESS_KEY);
+    }
+    Map<String, String> storageConfigs = meta.getStorageConfigs();
+    if (STORAGE_CONFIGS_VALUE_TYPE_S3.equals(
+        storageConfigs.get(CatalogMetaProperties.STORAGE_CONFIGS_KEY_TYPE))) {
+      CatalogUtil.copyProperty(
+          storageConfigs,
+          catalogProperties,
+          CatalogMetaProperties.STORAGE_CONFIGS_KEY_REGION,
+          AwsClientProperties.CLIENT_REGION);
+      CatalogUtil.copyProperty(
+          storageConfigs,
+          catalogProperties,
+          CatalogMetaProperties.STORAGE_CONFIGS_KEY_ENDPOINT,
+          S3FileIOProperties.ENDPOINT);
+    }
+    // TODO immutable
+    return catalogProperties;
   }
 
   /** Build {@link TableMetaStore} from catalog meta. */
@@ -141,7 +199,7 @@ public class CatalogUtil {
       }
     }
 
-    // cover auth configs from ams with auth configs in properties
+    // for compatibility, cover auth configs from ams with auth configs in properties
     String authType =
         catalogMeta.getCatalogProperties().get(CatalogMetaProperties.AUTH_CONFIGS_KEY_TYPE);
     if (StringUtils.isNotEmpty(authType)) {

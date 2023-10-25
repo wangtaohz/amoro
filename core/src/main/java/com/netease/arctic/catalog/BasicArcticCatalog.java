@@ -18,10 +18,6 @@
 
 package com.netease.arctic.catalog;
 
-import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_KAFKA;
-import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_PULSAR;
-import static com.netease.arctic.table.TableProperties.LOG_STORE_TYPE;
-
 import com.netease.arctic.AmsClient;
 import com.netease.arctic.NoSuchDatabaseException;
 import com.netease.arctic.ams.api.AlreadyExistsException;
@@ -66,6 +62,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_KAFKA;
+import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_PULSAR;
+import static com.netease.arctic.table.TableProperties.LOG_STORE_TYPE;
 
 /** Basic {@link ArcticCatalog} implementation. */
 public class BasicArcticCatalog implements ArcticCatalog {
@@ -208,7 +208,7 @@ public class BasicArcticCatalog implements ArcticCatalog {
 
   @Override
   public Map<String, String> properties() {
-    return catalogMeta.getCatalogProperties();
+    return CatalogUtil.getCompletedCatalogProperties(catalogMeta);
   }
 
   protected TableMeta getArcticTableMeta(TableIdentifier identifier) {
@@ -358,7 +358,7 @@ public class BasicArcticCatalog implements ArcticCatalog {
 
     protected void checkProperties() {
       Map<String, String> mergedProperties =
-          CatalogUtil.mergeCatalogPropertiesToTable(properties, catalogMeta.getCatalogProperties());
+          CatalogUtil.mergeCatalogPropertiesToTable(properties, CatalogUtil.getCompletedCatalogProperties(catalogMeta));
       boolean enableStream =
           CompatiblePropertyUtil.propertyAsBoolean(
               mergedProperties,
@@ -455,25 +455,15 @@ public class BasicArcticCatalog implements ArcticCatalog {
       }
     }
 
-    protected void fillTableProperties(TableMeta meta) {
-      meta.putToProperties(
-          TableProperties.TABLE_CREATE_TIME, String.valueOf(System.currentTimeMillis()));
-      meta.putToProperties(org.apache.iceberg.TableProperties.FORMAT_VERSION, "2");
-      meta.putToProperties(
-          org.apache.iceberg.TableProperties.METADATA_DELETE_AFTER_COMMIT_ENABLED, "true");
-      meta.putToProperties("flink.max-continuous-empty-commits", String.valueOf(Integer.MAX_VALUE));
-    }
-
     protected String getDatabaseLocation() {
-      if (catalogMeta.getCatalogProperties() != null) {
+      Map<String, String> catalogProperties = catalogMeta.getCatalogProperties();
+      if (catalogProperties != null) {
         String catalogWarehouse =
-            catalogMeta
-                .getCatalogProperties()
+            catalogProperties
                 .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE, null);
         if (catalogWarehouse == null) {
           catalogWarehouse =
-              catalogMeta
-                  .getCatalogProperties()
+              catalogProperties
                   .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE_DIR, null);
         }
         if (catalogWarehouse == null) {
