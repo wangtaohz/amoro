@@ -101,9 +101,6 @@ public class ArcticServiceContainer {
   }
 
   public static void main(String[] args) {
-    // System.setProperty("aws.region", "us-west-2");
-    // System.setProperty("aws.accessKeyId", "AKIAUC6XJJSNSXPB6LUC");
-    // System.setProperty("aws.secretAccessKey", "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");
     try {
       ArcticServiceContainer service = new ArcticServiceContainer();
       while (true) {
