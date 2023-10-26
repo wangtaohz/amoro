@@ -155,7 +155,7 @@ public class CommonUnifiedCatalog implements UnifiedCatalog {
             factory.create(
                 name(),
                 meta.getCatalogType(),
-                meta.getCatalogProperties(),
+                CatalogUtil.getCompletedCatalogProperties(meta),
                 store.getConfiguration());
         formatCatalogs.put(factory.format(), catalog);
       }

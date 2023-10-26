@@ -484,10 +484,11 @@ public class CatalogController {
     CatalogSettingInfo info = new CatalogSettingInfo();
 
     if (tableService.catalogExist(catalogName)) {
+      Map<String, String> catalogProperties = catalogMeta.getCatalogProperties();
       info.setName(catalogMeta.getCatalogName());
       // We create ams catalog with type hadoop in v0.3, we should be compatible with it.
       if (CATALOG_TYPE_HADOOP.equals(catalogMeta.getCatalogType())
-          && !catalogMeta.getCatalogProperties().containsKey(TABLE_FORMATS)) {
+          && !catalogProperties.containsKey(TABLE_FORMATS)) {
         info.setType(CATALOG_TYPE_AMS);
       } else {
         info.setType(catalogMeta.getCatalogType());
@@ -496,8 +497,7 @@ public class CatalogController {
       info.setStorageConfig(
           storageConvertFromMetaToServer(catalogName, catalogMeta.getStorageConfigs()));
       // we put the table format single
-      String tableFormat =
-          catalogMeta.getCatalogProperties().get(CatalogMetaProperties.TABLE_FORMATS);
+      String tableFormat = catalogProperties.get(CatalogMetaProperties.TABLE_FORMATS);
       if (StringUtils.isEmpty(tableFormat)) {
         if (catalogMeta.getCatalogType().equals(CATALOG_TYPE_HIVE)) {
           tableFormat = TableFormat.MIXED_HIVE.name();
@@ -506,10 +506,8 @@ public class CatalogController {
         }
       }
       info.setTableFormatList(Arrays.asList(tableFormat.split(",")));
-      info.setProperties(
-          PropertiesUtil.extractCatalogMetaProperties(catalogMeta.getCatalogProperties()));
-      info.setTableProperties(
-          PropertiesUtil.extractTableProperties(catalogMeta.getCatalogProperties()));
+      info.setProperties(PropertiesUtil.extractCatalogMetaProperties(catalogProperties));
+      info.setTableProperties(PropertiesUtil.extractTableProperties(catalogProperties));
       info.setOptimizerGroup(
           info.getTableProperties()
               .getOrDefault(

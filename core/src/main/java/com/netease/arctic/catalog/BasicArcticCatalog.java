@@ -208,7 +208,7 @@ public class BasicArcticCatalog implements ArcticCatalog {
 
   @Override
   public Map<String, String> properties() {
-    return catalogMeta.getCatalogProperties();
+    return CatalogUtil.getCompletedCatalogProperties(catalogMeta);
   }
 
   protected TableMeta getArcticTableMeta(TableIdentifier identifier) {
@@ -358,7 +358,8 @@ public class BasicArcticCatalog implements ArcticCatalog {
 
     protected void checkProperties() {
       Map<String, String> mergedProperties =
-          CatalogUtil.mergeCatalogPropertiesToTable(properties, catalogMeta.getCatalogProperties());
+          CatalogUtil.mergeCatalogPropertiesToTable(
+              properties, CatalogUtil.getCompletedCatalogProperties(catalogMeta));
       boolean enableStream =
           CompatiblePropertyUtil.propertyAsBoolean(
               mergedProperties,
@@ -455,26 +456,14 @@ public class BasicArcticCatalog implements ArcticCatalog {
       }
     }
 
-    protected void fillTableProperties(TableMeta meta) {
-      meta.putToProperties(
-          TableProperties.TABLE_CREATE_TIME, String.valueOf(System.currentTimeMillis()));
-      meta.putToProperties(org.apache.iceberg.TableProperties.FORMAT_VERSION, "2");
-      meta.putToProperties(
-          org.apache.iceberg.TableProperties.METADATA_DELETE_AFTER_COMMIT_ENABLED, "true");
-      meta.putToProperties("flink.max-continuous-empty-commits", String.valueOf(Integer.MAX_VALUE));
-    }
-
     protected String getDatabaseLocation() {
-      if (catalogMeta.getCatalogProperties() != null) {
+      Map<String, String> catalogProperties = catalogMeta.getCatalogProperties();
+      if (catalogProperties != null) {
         String catalogWarehouse =
-            catalogMeta
-                .getCatalogProperties()
-                .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE, null);
+            catalogProperties.getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE, null);
         if (catalogWarehouse == null) {
           catalogWarehouse =
-              catalogMeta
-                  .getCatalogProperties()
-                  .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE_DIR, null);
+              catalogProperties.getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE_DIR, null);
         }
         if (catalogWarehouse == null) {
           throw new NullPointerException("Catalog warehouse is null.");

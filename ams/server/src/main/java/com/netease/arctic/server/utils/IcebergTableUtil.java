@@ -170,7 +170,7 @@ public class IcebergTableUtil {
    * @return iceberg file io
    */
   public static FileIO newIcebergFileIo(CatalogMeta meta) {
-    Map<String, String> catalogProperties = meta.getCatalogProperties();
+    Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(meta);
     TableMetaStore store = CatalogUtil.buildMetaStore(meta);
     Configuration conf = store.getConfiguration();
     String ioImpl =
