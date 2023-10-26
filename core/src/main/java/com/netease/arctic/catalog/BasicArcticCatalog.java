@@ -18,6 +18,10 @@
 
 package com.netease.arctic.catalog;
 
+import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_KAFKA;
+import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_PULSAR;
+import static com.netease.arctic.table.TableProperties.LOG_STORE_TYPE;
+
 import com.netease.arctic.AmsClient;
 import com.netease.arctic.NoSuchDatabaseException;
 import com.netease.arctic.ams.api.AlreadyExistsException;
@@ -62,10 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_KAFKA;
-import static com.netease.arctic.table.TableProperties.LOG_STORE_STORAGE_TYPE_PULSAR;
-import static com.netease.arctic.table.TableProperties.LOG_STORE_TYPE;
 
 /** Basic {@link ArcticCatalog} implementation. */
 public class BasicArcticCatalog implements ArcticCatalog {
@@ -358,7 +358,8 @@ public class BasicArcticCatalog implements ArcticCatalog {
 
     protected void checkProperties() {
       Map<String, String> mergedProperties =
-          CatalogUtil.mergeCatalogPropertiesToTable(properties, CatalogUtil.getCompletedCatalogProperties(catalogMeta));
+          CatalogUtil.mergeCatalogPropertiesToTable(
+              properties, CatalogUtil.getCompletedCatalogProperties(catalogMeta));
       boolean enableStream =
           CompatiblePropertyUtil.propertyAsBoolean(
               mergedProperties,
@@ -459,12 +460,10 @@ public class BasicArcticCatalog implements ArcticCatalog {
       Map<String, String> catalogProperties = catalogMeta.getCatalogProperties();
       if (catalogProperties != null) {
         String catalogWarehouse =
-            catalogProperties
-                .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE, null);
+            catalogProperties.getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE, null);
         if (catalogWarehouse == null) {
           catalogWarehouse =
-              catalogProperties
-                  .getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE_DIR, null);
+              catalogProperties.getOrDefault(CatalogMetaProperties.KEY_WAREHOUSE_DIR, null);
         }
         if (catalogWarehouse == null) {
           throw new NullPointerException("Catalog warehouse is null.");

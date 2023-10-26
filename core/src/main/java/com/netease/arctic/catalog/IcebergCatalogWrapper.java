@@ -92,11 +92,10 @@ public class IcebergCatalogWrapper implements ArcticCatalog {
             () ->
                 org.apache.iceberg.CatalogUtil.buildIcebergCatalog(
                     name(), catalogProperties, this.tableMetaStore.getConfiguration()));
-    if (catalogProperties
-        .containsKey(CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION)) {
+    if (catalogProperties.containsKey(
+        CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION)) {
       String databaseFilter =
-          catalogProperties
-              .get(CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION);
+          catalogProperties.get(CatalogMetaProperties.KEY_DATABASE_FILTER_REGULAR_EXPRESSION);
       this.databaseFilterPattern = Pattern.compile(databaseFilter);
     } else {
       this.databaseFilterPattern = null;

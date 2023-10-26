@@ -73,7 +73,10 @@ public class InternalIcebergCatalogImpl extends InternalCatalog {
     return new IcebergTable(
         tableIdentifier,
         new IcebergCatalogWrapper.BasicIcebergTable(
-            tableIdentifier, table, fileIO, CatalogUtil.getCompletedCatalogProperties(getMetadata())));
+            tableIdentifier,
+            table,
+            fileIO,
+            CatalogUtil.getCompletedCatalogProperties(getMetadata())));
   }
 
   private String defaultRestURI() {

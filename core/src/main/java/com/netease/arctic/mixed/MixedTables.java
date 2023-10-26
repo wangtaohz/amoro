@@ -105,18 +105,12 @@ public class MixedTables {
     Map<String, String> catalogProperties = CatalogUtil.getCompletedCatalogProperties(catalogMeta);
     if (!keySpec.primaryKeyExisted()) {
       return new BasicUnkeyedTable(
-          tableIdentifier,
-          useArcticTableOperation(base, io),
-          io,
-          catalogProperties);
+          tableIdentifier, useArcticTableOperation(base, io), io, catalogProperties);
     }
     Table changeIcebergTable = loadChangeStore(base);
     BaseTable baseStore =
         new BasicKeyedTable.BaseInternalTable(
-            tableIdentifier,
-            useArcticTableOperation(base, io),
-            io,
-            catalogProperties);
+            tableIdentifier, useArcticTableOperation(base, io), io, catalogProperties);
     ChangeTable changeStore =
         new BasicKeyedTable.ChangeInternalTable(
             tableIdentifier,
@@ -175,10 +169,7 @@ public class MixedTables {
             identifier, useArcticTableOperation(base, io), io, catalogProperties);
     ChangeTable changeStore =
         new BasicKeyedTable.ChangeInternalTable(
-            identifier,
-            useArcticTableOperation(change, io),
-            io,
-            catalogProperties);
+            identifier, useArcticTableOperation(change, io), io, catalogProperties);
     return new BasicKeyedTable(keySpec, baseStore, changeStore);
   }
 

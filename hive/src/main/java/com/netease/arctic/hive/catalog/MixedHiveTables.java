@@ -41,7 +41,8 @@ public class MixedHiveTables extends MixedTables {
   public MixedHiveTables(CatalogMeta catalogMeta) {
     super(catalogMeta);
     this.hiveClientPool =
-        new CachedHiveClientPool(getTableMetaStore(), CatalogUtil.getCompletedCatalogProperties(catalogMeta));
+        new CachedHiveClientPool(
+            getTableMetaStore(), CatalogUtil.getCompletedCatalogProperties(catalogMeta));
   }
 
   public CachedHiveClientPool getHiveClientPool() {
@@ -438,6 +439,7 @@ public class MixedHiveTables extends MixedTables {
   public void refreshCatalogMeta(CatalogMeta meta) {
     super.refreshCatalogMeta(meta);
     this.hiveClientPool =
-        new CachedHiveClientPool(getTableMetaStore(), CatalogUtil.getCompletedCatalogProperties(catalogMeta));
+        new CachedHiveClientPool(
+            getTableMetaStore(), CatalogUtil.getCompletedCatalogProperties(catalogMeta));
   }
 }
