@@ -27,8 +27,8 @@ import org.apache.iceberg.relocated.com.google.common.base.MoreObjects;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Locale;
 import java.util.Map;
 
@@ -49,10 +49,10 @@ public class TagConfiguration {
   /** The interval for periodically triggering creating tags */
   public enum Period {
     DAILY("daily") {
+
       @Override
-      public long getTagTriggerTime(LocalDateTime checkTime, int triggerOffsetMinutes) {
-        long periodSize = 60 * 60 * 24 * 1000L;
-        return getPeriodEndWithOffset(checkTime, triggerOffsetMinutes, periodSize);
+      protected TemporalUnit getPeriodUnit() {
+        return ChronoUnit.DAYS;
       }
 
       @Override
@@ -63,10 +63,10 @@ public class TagConfiguration {
       }
     },
     HOURLY("hourly") {
+
       @Override
-      public long getTagTriggerTime(LocalDateTime checkTime, int triggerOffsetMinutes) {
-        long periodSize = 60 * 60 * 1000L;
-        return getPeriodEndWithOffset(checkTime, triggerOffsetMinutes, periodSize);
+      protected TemporalUnit getPeriodUnit() {
+        return ChronoUnit.HOURS;
       }
 
       @Override
@@ -88,39 +88,27 @@ public class TagConfiguration {
     }
 
     /**
-     * Obtain the trigger time for creating a tag, which is the idea time of the last tag before the
-     * check time.
+     * Obtain the trigger time for creating a tag, which is the ideal time of the last tag before
+     * the check time.
      *
-     * <p>For example, when creating a daily tag, the check time is 2022-08-08 11:00:00 and the
-     * offset is set to be 5 min, the idea trigger time is 2022-08-08 00:05:00.
+     * <p>For example, when creating a daily tag, the offset is set to be 30 min, if the check time
+     * is 2022-08-08 02:00:00, the ideal trigger time is 2022-08-08 00:30:00; if the check time is
+     * 2022-08-09 00:20:00 (before 00:30 of the next day), the ideal trigger time is still
+     * 2022-08-08 00:30:00.
      */
-    public abstract long getTagTriggerTime(LocalDateTime checkTime, int triggerOffsetMinutes);
+    public long getTagTriggerTime(LocalDateTime checkTime, int triggerOffsetMinutes) {
+      return checkTime
+          .minusMinutes(triggerOffsetMinutes)
+          .truncatedTo(getPeriodUnit())
+          .plusMinutes(triggerOffsetMinutes)
+          .atZone(ZoneId.systemDefault())
+          .toInstant()
+          .toEpochMilli();
+    }
+
+    protected abstract TemporalUnit getPeriodUnit();
 
     public abstract LocalDateTime normalizeToTagTime(long triggerTime, int triggerOffsetMinutes);
-
-    /**
-     * calculate the end of the period adjusted with a specified offset.
-     *
-     * <p>The calculation takes into account the provided period size and offset. It first
-     * calculates an offset timestamp, which is essentially `checkTime` minus offset minutes. Then
-     * it calculates the delta of the division of that timestamp by the period size, then applies
-     * the delta to the original timestamp to get the period start timestamp.
-     */
-    protected Long getPeriodEndWithOffset(
-        LocalDateTime checkTime, int triggerOffsetMinutes, long periodSize) {
-      long timestamp = checkTime.atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
-      long offset = triggerOffsetMinutes * 60_000L;
-      final long remainder = (timestamp - offset) % periodSize;
-      long windowStartTimestamp;
-      if (remainder < 0) {
-        windowStartTimestamp = timestamp - (remainder + periodSize);
-      } else {
-        windowStartTimestamp = timestamp - remainder;
-      }
-      LocalDateTime windowStart =
-          LocalDateTime.ofInstant(Instant.ofEpochMilli(windowStartTimestamp), ZoneOffset.UTC);
-      return windowStart.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-    }
   }
 
   public static TagConfiguration parse(Map<String, String> tableProperties) {
