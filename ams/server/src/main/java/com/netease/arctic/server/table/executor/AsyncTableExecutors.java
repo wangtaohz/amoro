@@ -4,6 +4,7 @@ import com.netease.arctic.server.ArcticManagementConf;
 import com.netease.arctic.server.table.TableManager;
 import com.netease.arctic.server.utils.Configurations;
 
+// TODO wangtaohz this class still work
 public class AsyncTableExecutors {
 
   private static final AsyncTableExecutors instance = new AsyncTableExecutors();
