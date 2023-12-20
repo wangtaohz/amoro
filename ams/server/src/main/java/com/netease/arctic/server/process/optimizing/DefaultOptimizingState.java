@@ -156,6 +156,7 @@ public class DefaultOptimizingState extends TableState implements OptimizingStat
     );
   }
 
+  // TODO wangtaohz method name should be saveProcessRecovered
   protected void saveProcessRecoverd(DefaultOptimizingProcess process) {
     optimizingProcess = process;
     process.whenCompleted(() -> saveProcessCompleted(process));

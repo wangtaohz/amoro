@@ -95,10 +95,12 @@ public class TableRuntime extends StatedPersistentBase {
   private void initActionRunners() {
   }
 
+  // TODO wangtaohz: new added table not call this method
   public void register(ProcessFactory<DefaultOptimizingState> defaultOptimizingFactory) {
     optimizingRunner.install(defaultOptimizingFactory);
   }
 
+  // TODO wangtaohz: new added table not call this method
   public void register(Set<Action> actions, ProcessFactory<TableState> processFactory) {
     actions.forEach(action -> arbitraryRunnerMap.get(action).install(processFactory));
   }

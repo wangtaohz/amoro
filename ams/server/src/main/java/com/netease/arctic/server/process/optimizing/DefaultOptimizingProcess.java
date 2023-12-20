@@ -47,6 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class DefaultOptimizingProcess extends TableProcess<DefaultOptimizingState> {
 
+  // TODO wangtaohz COMMIT_TASK_SEQUENCE
   private static final int COMMMIT_TASK_SEQUENCE = Integer.MAX_VALUE;
 
   private final long processId;

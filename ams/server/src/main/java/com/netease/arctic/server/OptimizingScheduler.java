@@ -73,6 +73,7 @@ public class OptimizingScheduler extends AbstractScheduler<DefaultOptimizingStat
     try {
       if (tableRuntime.isOptimizingEnabled()) {
         tableRuntimeMap.put(tableRuntime.getTableIdentifier(), tableRuntime);
+        // TODO wangtaohz print info log too frequently
         LOG.info(
             "Bind queue {} success with table {}",
             optimizerGroup.getName(),

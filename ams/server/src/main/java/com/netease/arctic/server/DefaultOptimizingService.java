@@ -68,11 +68,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * DefaultOptimizingService is implementing the OptimizerManager Thrift service, which manages the
- * optimization tasks for ArcticTable. It includes methods for authenticating optimizers, polling
- * tasks from the optimizing queue, acknowledging tasks,and completing tasks. The code uses several
- * data structures, including maps for optimizing queues ,task runtimes, and authenticated
- * optimizers.
+ * // TODO wangtaohz: this comment may be out of date DefaultOptimizingService is implementing the
+ * OptimizerManager Thrift service, which manages the optimization tasks for ArcticTable. It
+ * includes methods for authenticating optimizers, polling tasks from the optimizing queue,
+ * acknowledging tasks,and completing tasks. The code uses several data structures, including maps
+ * for optimizing queues ,task runtimes, and authenticated optimizers.
  *
  * <p>The code also includes a TimerTask for detecting and removing expired optimizers and
  * suspending tasks.
@@ -89,7 +89,9 @@ public class DefaultOptimizingService extends StatedPersistentBase
 
   private final long optimizerTouchTimeout;
   private final long taskAckTimeout;
+  // TODO wangtaohz can be set as a group config
   private final int maxPlanningParallelism;
+  // TODO wangtaohz add some comments fro schedulersByGroup
   private final Map<String, AbstractScheduler<?>> schedulersByGroup = new ConcurrentHashMap<>();
   private final Map<String, AbstractScheduler<?>> schedulersByToken = new ConcurrentHashMap<>();
   private final Map<String, OptimizerInstance> authOptimizers = new ConcurrentHashMap<>();
@@ -107,6 +109,7 @@ public class DefaultOptimizingService extends StatedPersistentBase
   }
 
   private void installProcessFactories(List<TableRuntime> tableRuntimeList) {
+    // TODO wangtaohz: actions of group is empty loading from sysdb
     List<ResourceGroup> optimizerGroups =
         getAs(ResourceMapper.class, ResourceMapper::selectResourceGroups);
     List<OptimizerInstance> optimizers = getAs(OptimizerMapper.class, OptimizerMapper::selectAll);
@@ -118,6 +121,7 @@ public class DefaultOptimizingService extends StatedPersistentBase
             tableRuntimeList.stream()
                 .filter(table -> table.getOptimizerGroup().equals(groupName))
                 .forEach(table -> table.register(optimizingScheduler));
+            // TODO wangtaohz: missing put it to schedulersByGroup?
           } else if (!Sets.intersection(group.getActions(), MAINTAINING_ACTIONS).isEmpty()) {
             MaintainingScheduler maintainingScheduler = new MaintainingScheduler(group);
             schedulersByGroup.put(groupName, maintainingScheduler);

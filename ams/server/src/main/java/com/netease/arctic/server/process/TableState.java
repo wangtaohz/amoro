@@ -33,6 +33,7 @@ public class TableState extends StatedPersistentBase implements ProcessState {
   private long endTime = -1L;
   private ProcessStatus status = ProcessStatus.RUNNING;
   private volatile String failedReason;
+  // TODO wangtaohz use Map<String, String> as summary?
   private volatile String summary;
 
   private TableState() {}

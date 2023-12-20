@@ -22,9 +22,11 @@ package com.netease.arctic.ams.api;
 
 public enum Action {
 
+  // TODO wangtaohz data expiring
   OPTIMIZING("optimizing"),
   REFRESH_SNAPSHOT("refreshing"),
   EXPIRE_SNAPSHOTS("expiring"),
+  // TODO wangtaohz useless action
   EXPIRE_PROCESS("clean_meta"),
   CLEAN_ORPHANED_FILES("clean_orphaned"),
   HIVE_COMMIT_SYNC("sync_hive");
