@@ -1,17 +1,17 @@
 package com.netease.arctic.server.table;
 
 import com.netease.arctic.AmoroTable;
-import com.netease.arctic.server.process.optimizing.OptimizingStage;
+import com.netease.arctic.ams.api.config.TableConfiguration;
 
 public interface TableWatcher {
 
   // TODO wangtaohz: useless?
   void start();
 
-  void tableAdded(TableRuntime tableRuntime, AmoroTable<?> table);
+  void tableAdded(DefaultTableRuntime tableRuntime, AmoroTable<?> table);
 
-  void tableRemoved(TableRuntime tableRuntime);
+  void tableRemoved(DefaultTableRuntime tableRuntime);
 
   // TODO wangtaohz: useless?
-  void tableChanged(TableRuntime tableRuntime, TableConfiguration oldConfig);
+  void tableChanged(DefaultTableRuntime tableRuntime, TableConfiguration oldConfig);
 }
