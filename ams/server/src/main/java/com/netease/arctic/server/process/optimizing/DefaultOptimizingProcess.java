@@ -50,6 +50,7 @@ public class DefaultOptimizingProcess extends TableProcess<DefaultOptimizingStat
   private static final int COMMMIT_TASK_SEQUENCE = Integer.MAX_VALUE;
 
   private final long processId;
+  // TODO wangtaohz executing tasks
   private final Map<OptimizingTaskId, TaskRuntime<?, ?>> executingMap = Maps.newHashMap();
   private final LinkedList<TaskRuntime<?, ?>> taskQueue = new LinkedList<>();
   private final Lock executingLock = new ReentrantLock();
