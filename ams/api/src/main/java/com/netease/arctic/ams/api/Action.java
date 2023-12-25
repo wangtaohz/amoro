@@ -21,23 +21,28 @@
 package com.netease.arctic.ams.api;
 
 public enum Action {
-
   // TODO wangtaohz data expiring
-  OPTIMIZING("optimizing"),
-  REFRESH_SNAPSHOT("refreshing"),
-  EXPIRE_SNAPSHOTS("expiring"),
+  OPTIMIZING("optimizing", 0),
+  REFRESH_SNAPSHOT("refreshing", 1),
+  EXPIRE_SNAPSHOTS("expiring", 2),
   // TODO wangtaohz useless action
-  EXPIRE_PROCESS("clean_meta"),
-  CLEAN_ORPHANED_FILES("clean_orphaned"),
-  HIVE_COMMIT_SYNC("sync_hive");
+  EXPIRE_PROCESS("clean_meta", 3),
+  CLEAN_ORPHANED_FILES("clean_orphaned", 4),
+  HIVE_COMMIT_SYNC("sync_hive", 5);
 
   private final String description;
+  private final int dbValue;
 
-  Action(String description) {
+  Action(String description, int dbValue) {
     this.description = description;
+    this.dbValue = dbValue;
   }
 
   public String getDescription() {
     return description;
+  }
+
+  public int getDbValue() {
+    return dbValue;
   }
 }

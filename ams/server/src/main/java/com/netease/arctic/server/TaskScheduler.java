@@ -2,12 +2,14 @@ package com.netease.arctic.server;
 
 import com.netease.arctic.ams.api.Action;
 import com.netease.arctic.ams.api.OptimizingTaskId;
+import com.netease.arctic.ams.api.ServerTableIdentifier;
 import com.netease.arctic.ams.api.TableRuntime;
 import com.netease.arctic.ams.api.process.AmoroProcess;
 import com.netease.arctic.ams.api.process.ProcessFactory;
+import com.netease.arctic.ams.api.process.TableProcess;
 import com.netease.arctic.ams.api.process.TableState;
 import com.netease.arctic.ams.api.resource.ResourceGroup;
-import com.netease.arctic.server.process.TableProcess;
+import com.netease.arctic.server.process.ManagedProcess;
 import com.netease.arctic.server.process.TaskQueue;
 import com.netease.arctic.server.process.TaskRuntime;
 import com.netease.arctic.server.table.DefaultTableRuntime;
@@ -31,7 +33,7 @@ public abstract class TaskScheduler<T extends TableState>
 
   protected static final Logger LOG = LoggerFactory.getLogger(TaskScheduler.class);
 
-  protected final Queue<TableProcess<T>> tableProcessQueue = new LinkedTransferQueue<>();
+  protected final Queue<ManagedProcess<T>> tableProcessQueue = new LinkedTransferQueue<>();
   protected final Lock schedulerLock = new ReentrantLock();
   protected ResourceGroup optimizerGroup;
 
@@ -65,9 +67,11 @@ public abstract class TaskScheduler<T extends TableState>
   private void run(DefaultTableRuntime tableRuntime, Action action) {
     if (action == Action.OPTIMIZING) {
       // TODO wangtaohz add process to tableProcessQueue?
-      tableRuntime.runOptimizing();
+      printProcessIfNecessary(
+          tableRuntime.runOptimizing(), false, tableRuntime.getTableIdentifier());
     } else {
-      tableRuntime.runAction(action);
+      printProcessIfNecessary(
+          tableRuntime.runAction(action), false, tableRuntime.getTableIdentifier());
     }
   }
 
@@ -107,9 +111,10 @@ public abstract class TaskScheduler<T extends TableState>
     this.optimizerGroup = optimizerGroup;
   }
 
-  protected abstract TableProcess<T> createProcess(DefaultTableRuntime tableRuntime, Action action);
+  protected abstract ManagedProcess<T> createProcess(
+      DefaultTableRuntime tableRuntime, Action action);
 
-  protected abstract TableProcess<T> recoverProcess(
+  protected abstract ManagedProcess<T> recoverProcess(
       DefaultTableRuntime tableRuntime, Action action, T package$);
 
   @Override
@@ -129,7 +134,8 @@ public abstract class TaskScheduler<T extends TableState>
   @Override
   public AmoroProcess<T> recover(TableRuntime tableRuntime, Action action, T state) {
     DefaultTableRuntime defaultTableRuntime = (DefaultTableRuntime) tableRuntime;
-    TableProcess<T> process = recoverProcess(defaultTableRuntime, action, state);
+    ManagedProcess<T> process = recoverProcess(defaultTableRuntime, action, state);
+    printProcessIfNecessary(process, true, defaultTableRuntime.getTableIdentifier());
     if (process != null) {
       process.whenCompleted(
           () -> {
@@ -143,6 +149,19 @@ public abstract class TaskScheduler<T extends TableState>
     } else {
       refreshTable(defaultTableRuntime);
       return null;
+    }
+  }
+
+  private void printProcessIfNecessary(
+      AmoroProcess<?> process, boolean recovery, ServerTableIdentifier tableIdentifier) {
+    if (process != null) {
+      String operation = recovery ? "Recover" : "Create";
+      LOG.info(
+          "{} process {} for action {} of table {}",
+          operation,
+          process,
+          process.getAction(),
+          tableIdentifier);
     }
   }
 }

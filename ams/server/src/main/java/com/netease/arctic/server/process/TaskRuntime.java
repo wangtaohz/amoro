@@ -81,7 +81,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public void complete(OptimizerThread thread, OptimizingTaskResult result) {
-    invokeConsisitency(
+    invokeConsistency(
         () -> {
           validThread(thread);
           if (result.getErrorMessage() != null) {
@@ -115,7 +115,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public void reset() {
-    invokeConsisitency(
+    invokeConsistency(
         () -> {
           statusMachine.accept(Status.PLANNED);
           token = null;
@@ -128,7 +128,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public void schedule(OptimizerThread thread) {
-    invokeConsisitency(
+    invokeConsistency(
         () -> {
           statusMachine.accept(Status.SCHEDULED);
           token = thread.getToken();
@@ -139,7 +139,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public void ack(OptimizerThread thread) {
-    invokeConsisitency(
+    invokeConsistency(
         () -> {
           validThread(thread);
           statusMachine.accept(Status.ACKED);
@@ -150,7 +150,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public void tryCanceling() {
-    invokeConsisitency(
+    invokeConsistency(
         () -> {
           if (statusMachine.tryAccepting(Status.CANCELED)) {
             costTime = System.currentTimeMillis() - startTime;
