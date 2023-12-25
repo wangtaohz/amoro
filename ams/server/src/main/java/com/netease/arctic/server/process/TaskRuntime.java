@@ -22,10 +22,10 @@ import com.google.common.collect.Sets;
 import com.netease.arctic.ams.api.OptimizingTask;
 import com.netease.arctic.ams.api.OptimizingTaskId;
 import com.netease.arctic.ams.api.OptimizingTaskResult;
+import com.netease.arctic.ams.api.exception.DuplicateRuntimeException;
+import com.netease.arctic.ams.api.exception.IllegalTaskStateException;
 import com.netease.arctic.ams.api.process.SimpleFuture;
 import com.netease.arctic.server.ArcticServiceConstants;
-import com.netease.arctic.server.exception.DuplicateRuntimeException;
-import com.netease.arctic.server.exception.IllegalTaskStateException;
 import com.netease.arctic.server.persistence.StatedPersistentBase;
 import com.netease.arctic.server.persistence.mapper.OptimizingMapper;
 import com.netease.arctic.server.resource.OptimizerThread;
@@ -60,10 +60,11 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
 
   private TaskRuntime() {}
 
-  TaskRuntime(OptimizingTaskId taskId,
-              I input,
-              Map<String, String> properties,
-              TaskSummary<I, O> summaryBuilder) {
+  TaskRuntime(
+      OptimizingTaskId taskId,
+      I input,
+      Map<String, String> properties,
+      TaskSummary<I, O> summaryBuilder) {
     this.taskId = taskId;
     this.input = input;
     this.properties = properties;
@@ -205,7 +206,9 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public long getQuotaRuntime() {
-    return status == Status.SCHEDULED ? costTime + System.currentTimeMillis() - startTime : costTime;
+    return status == Status.SCHEDULED
+        ? costTime + System.currentTimeMillis() - startTime
+        : costTime;
   }
 
   public long getStartTime() {
@@ -285,7 +288,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
 
     public void accept(Status targetStatus) {
       if (!getNext().contains(targetStatus)) {
-        throw new IllegalTaskStateException(taskId, status, targetStatus);
+        throw new IllegalTaskStateException(taskId, status.name(), targetStatus.name());
       }
       status = targetStatus;
     }
