@@ -26,6 +26,7 @@ import com.netease.arctic.ams.api.process.OptimizingStage;
 import com.netease.arctic.ams.api.process.OptimizingState;
 import com.netease.arctic.ams.api.process.PendingInput;
 import com.netease.arctic.ams.api.process.ProcessStatus;
+import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.server.persistence.StatedPersistentBase;
 import com.netease.arctic.server.persistence.TableRuntimePersistency;
 import com.netease.arctic.server.persistence.mapper.OptimizingMapper;
