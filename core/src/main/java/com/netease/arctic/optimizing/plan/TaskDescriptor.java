@@ -16,35 +16,39 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.optimizing;
+package com.netease.arctic.optimizing.plan;
 
-import org.apache.iceberg.relocated.com.google.common.collect.Maps;
+import com.netease.arctic.optimizing.RewriteFilesInput;
 
-import java.util.List;
 import java.util.Map;
 
-public class TablePlanOutput implements TableOptimizing.OptimizingOutput {
+public class TaskDescriptor {
+  private final long tableId;
+  private final String partition;
+  private final RewriteFilesInput input;
+  private final Map<String, String> properties;
 
-  private final OptimizingType optimizingType;
-  private final List<RewriteFilesInput> rewriteFilesInputs;
-  private final Map<String, String> summary = Maps.newHashMap();
-
-  public TablePlanOutput(
-      OptimizingType optimizingType, List<RewriteFilesInput> rewriteFilesInputs) {
-    this.optimizingType = optimizingType;
-    this.rewriteFilesInputs = rewriteFilesInputs;
+  TaskDescriptor(
+      long tableId, String partition, RewriteFilesInput input, Map<String, String> properties) {
+    this.tableId = tableId;
+    this.partition = partition;
+    this.input = input;
+    this.properties = properties;
   }
 
-  public OptimizingType getOptimizingType() {
-    return optimizingType;
+  public String getPartition() {
+    return partition;
   }
 
-  public List<RewriteFilesInput> getRewriteFilesInputs() {
-    return rewriteFilesInputs;
+  public RewriteFilesInput getInput() {
+    return input;
   }
 
-  @Override
-  public Map<String, String> summary() {
-    return summary;
+  public Map<String, String> properties() {
+    return properties;
+  }
+
+  public long getTableId() {
+    return tableId;
   }
 }

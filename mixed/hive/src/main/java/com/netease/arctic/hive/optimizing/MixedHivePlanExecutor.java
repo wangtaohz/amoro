@@ -16,56 +16,30 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.optimizing;
+package com.netease.arctic.hive.optimizing;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
+import com.netease.arctic.optimizing.TablePlanExecutor;
+import com.netease.arctic.optimizing.plan.OptimizingPlanner;
 import com.netease.arctic.table.ArcticTable;
 import org.apache.iceberg.expressions.Expressions;
 
-public class TablePlanInput extends BaseOptimizingInput {
-  private ArcticTable table;
-  private OptimizingConfig optimizingConfig;
-  private String ref;
-  private long targetSnapshotId;
-  private long targetChangeSnapshotId;
-  private Expressions filter;
+import java.util.Map;
 
-  public TablePlanInput(
+public class MixedHivePlanExecutor extends TablePlanExecutor {
+  public MixedHivePlanExecutor(
       ArcticTable table,
       OptimizingConfig optimizingConfig,
       String ref,
       long targetSnapshotId,
       long targetChangeSnapshotId,
-      Expressions filter) {
-    this.table = table;
-    this.optimizingConfig = optimizingConfig;
-    this.ref = ref;
-    this.targetSnapshotId = targetSnapshotId;
-    this.targetChangeSnapshotId = targetChangeSnapshotId;
-    this.filter = filter;
+      Expressions filter,
+      Map<String, String> options) {
+    super(table, optimizingConfig, ref, targetSnapshotId, targetChangeSnapshotId, filter, options);
   }
 
-  public OptimizingConfig getOptimizingConfig() {
-    return optimizingConfig;
-  }
-
-  public String getRef() {
-    return ref;
-  }
-
-  public long getTargetSnapshotId() {
-    return targetSnapshotId;
-  }
-
-  public long getTargetChangeSnapshotId() {
-    return targetChangeSnapshotId;
-  }
-
-  public ArcticTable getTable() {
-    return table;
-  }
-
-  public Expressions getFilter() {
-    return filter;
+  @Override
+  public OptimizingPlanner buildTablePlanner() {
+    return new 
   }
 }

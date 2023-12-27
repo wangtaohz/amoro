@@ -19,53 +19,44 @@
 package com.netease.arctic.optimizing;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
+import com.netease.arctic.optimizing.plan.OptimizingPlanner;
 import com.netease.arctic.table.ArcticTable;
 import org.apache.iceberg.expressions.Expressions;
 
-public class TablePlanInput extends BaseOptimizingInput {
-  private ArcticTable table;
-  private OptimizingConfig optimizingConfig;
-  private String ref;
-  private long targetSnapshotId;
-  private long targetChangeSnapshotId;
-  private Expressions filter;
+import java.util.Map;
 
-  public TablePlanInput(
+public class TablePlanExecutor implements OptimizingExecutor<TablePlanOutput> {
+  private final ArcticTable table;
+  private final OptimizingConfig optimizingConfig;
+  private final String ref;
+  private final long targetSnapshotId;
+  private final long targetChangeSnapshotId;
+  private final Expressions filter;
+  private final Map<String, String> options;
+
+  public TablePlanExecutor(
       ArcticTable table,
       OptimizingConfig optimizingConfig,
       String ref,
       long targetSnapshotId,
       long targetChangeSnapshotId,
-      Expressions filter) {
+      Expressions filter,
+      Map<String, String> options) {
     this.table = table;
     this.optimizingConfig = optimizingConfig;
     this.ref = ref;
     this.targetSnapshotId = targetSnapshotId;
     this.targetChangeSnapshotId = targetChangeSnapshotId;
     this.filter = filter;
+    this.options = options;
   }
 
-  public OptimizingConfig getOptimizingConfig() {
-    return optimizingConfig;
+  @Override
+  public TablePlanOutput execute() {
+    return null;
   }
-
-  public String getRef() {
-    return ref;
-  }
-
-  public long getTargetSnapshotId() {
-    return targetSnapshotId;
-  }
-
-  public long getTargetChangeSnapshotId() {
-    return targetChangeSnapshotId;
-  }
-
-  public ArcticTable getTable() {
-    return table;
-  }
-
-  public Expressions getFilter() {
-    return filter;
+  
+  public OptimizingPlanner buildTablePlanner() {
+    return new OptimizingPlanner();
   }
 }

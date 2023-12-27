@@ -16,35 +16,29 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.optimizing;
+package com.netease.arctic.hive.optimizing;
 
-import org.apache.iceberg.relocated.com.google.common.collect.Maps;
+import com.netease.arctic.optimizing.OptimizingExecutor;
+import com.netease.arctic.optimizing.OptimizingExecutorFactory;
+import com.netease.arctic.optimizing.TablePlanInput;
+import com.netease.arctic.optimizing.TablePlanOutput;
 
-import java.util.List;
 import java.util.Map;
 
-public class TablePlanOutput implements TableOptimizing.OptimizingOutput {
-
-  private final OptimizingType optimizingType;
-  private final List<RewriteFilesInput> rewriteFilesInputs;
-  private final Map<String, String> summary = Maps.newHashMap();
-
-  public TablePlanOutput(
-      OptimizingType optimizingType, List<RewriteFilesInput> rewriteFilesInputs) {
-    this.optimizingType = optimizingType;
-    this.rewriteFilesInputs = rewriteFilesInputs;
-  }
-
-  public OptimizingType getOptimizingType() {
-    return optimizingType;
-  }
-
-  public List<RewriteFilesInput> getRewriteFilesInputs() {
-    return rewriteFilesInputs;
-  }
+public class MixedHivePlanExecutorFactory implements OptimizingExecutorFactory<TablePlanInput> {
 
   @Override
-  public Map<String, String> summary() {
-    return summary;
+  public void initialize(Map<String, String> properties) {}
+
+  @Override
+  public OptimizingExecutor<TablePlanOutput> createExecutor(TablePlanInput input) {
+    return new MixedHivePlanExecutor(
+        input.getTable(),
+        input.getOptimizingConfig(),
+        input.getRef(),
+        input.getTargetSnapshotId(),
+        input.getTargetChangeSnapshotId(),
+        input.getFilter(),
+        input.getOptions());
   }
 }

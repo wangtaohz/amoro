@@ -18,33 +18,21 @@
 
 package com.netease.arctic.optimizing;
 
-import org.apache.iceberg.relocated.com.google.common.collect.Maps;
-
-import java.util.List;
 import java.util.Map;
 
-public class TablePlanOutput implements TableOptimizing.OptimizingOutput {
-
-  private final OptimizingType optimizingType;
-  private final List<RewriteFilesInput> rewriteFilesInputs;
-  private final Map<String, String> summary = Maps.newHashMap();
-
-  public TablePlanOutput(
-      OptimizingType optimizingType, List<RewriteFilesInput> rewriteFilesInputs) {
-    this.optimizingType = optimizingType;
-    this.rewriteFilesInputs = rewriteFilesInputs;
-  }
-
-  public OptimizingType getOptimizingType() {
-    return optimizingType;
-  }
-
-  public List<RewriteFilesInput> getRewriteFilesInputs() {
-    return rewriteFilesInputs;
-  }
+public class TablePlanExecutorFactory implements OptimizingExecutorFactory<TablePlanInput> {
+  @Override
+  public void initialize(Map<String, String> properties) {}
 
   @Override
-  public Map<String, String> summary() {
-    return summary;
+  public OptimizingExecutor<TablePlanOutput> createExecutor(TablePlanInput input) {
+    return new TablePlanExecutor(
+        input.getTable(),
+        input.getOptimizingConfig(),
+        input.getRef(),
+        input.getTargetSnapshotId(),
+        input.getTargetChangeSnapshotId(),
+        input.getFilter(),
+        input.getOptions());
   }
 }
