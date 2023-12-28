@@ -19,7 +19,6 @@
 package com.netease.arctic.optimizing.plan;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
-import com.netease.arctic.optimizing.OptimizingType;
 import org.apache.iceberg.ContentFile;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileContent;

@@ -6,6 +6,7 @@ import com.netease.arctic.ams.api.process.AmoroProcess;
 import com.netease.arctic.ams.api.process.OptimizingState;
 import com.netease.arctic.ams.api.process.ProcessFactory;
 import com.netease.arctic.ams.api.process.ProcessStatus;
+import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.server.persistence.OptimizingStatePersistency;
 import com.netease.arctic.server.persistence.mapper.TableProcessMapper;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;

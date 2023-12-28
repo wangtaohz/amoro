@@ -19,7 +19,6 @@
 package com.netease.arctic.optimizing.plan;
 
 import com.netease.arctic.ams.api.TableFormat;
-import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.server.table.TableRuntime;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.utils.ExpressionUtil;

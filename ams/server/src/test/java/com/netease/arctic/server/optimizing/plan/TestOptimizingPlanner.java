@@ -23,7 +23,6 @@ import com.netease.arctic.TableTestHelper;
 import com.netease.arctic.ams.api.TableFormat;
 import com.netease.arctic.catalog.BasicCatalogTestHelper;
 import com.netease.arctic.catalog.CatalogTestHelper;
-import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.optimizing.scan.FileScanResult;
 import com.netease.arctic.server.process.optimizing.TaskDescriptor;
 import org.apache.iceberg.DataFile;
