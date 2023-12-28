@@ -26,13 +26,13 @@ import com.netease.arctic.ams.api.process.OptimizingStage;
 import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.optimizing.RewriteFilesInput;
 import com.netease.arctic.optimizing.RewriteFilesOutput;
+import com.netease.arctic.optimizing.TableCommitInput;
+import com.netease.arctic.optimizing.TableCommitOutput;
+import com.netease.arctic.optimizing.TablePlanInput;
+import com.netease.arctic.optimizing.TablePlanOutput;
 import com.netease.arctic.server.persistence.PersistentBase;
 import com.netease.arctic.server.persistence.TaskFilesPersistence;
 import com.netease.arctic.server.persistence.mapper.OptimizingMapper;
-import com.netease.arctic.server.process.task.TableCommitInput;
-import com.netease.arctic.server.process.task.TableCommitOutput;
-import com.netease.arctic.server.process.task.TablePlanInput;
-import com.netease.arctic.server.process.task.TablePlanOutput;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 
@@ -202,7 +202,7 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
           if (taskRuntime.getTaskId().getTaskId() == COMMMIT_TASK_SEQUENCE) {
             TaskRuntime<TableCommitInput, TableCommitOutput> committingTask =
                 (TaskRuntime<TableCommitInput, TableCommitOutput>) taskRuntime;
-            // TODO
+            // TODO wangtaohz fix loading from sysdb
             committingTask.setInput(new TableCommitInput());
             handleAsyncTask(committingTask, this::handleCommittingCompleted);
           } else {

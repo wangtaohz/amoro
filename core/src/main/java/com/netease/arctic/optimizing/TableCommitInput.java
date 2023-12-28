@@ -34,6 +34,8 @@ public class TableCommitInput {
   private Set<DeleteFile> deleteFilesToAdd;
   private Map<String, String> properties;
 
+  public TableCommitInput() {}
+
   public TableCommitInput(
       ArcticTable table,
       long targetSnapshotId,

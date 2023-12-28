@@ -31,7 +31,6 @@ public enum Action {
   MAJOR_OPTIMIZING("minor-optimizing", 1),
   EXTERNAL_OPTIMIZING("external-optimizing", 2),
   REFRESH_SNAPSHOT("refreshing", 10),
-  // TODO wangtaohz useless action
   EXPIRE_SNAPSHOTS("expiring", 11),
   CLEAN_ORPHANED_FILES("clean_orphaned", 12),
   HIVE_COMMIT_SYNC("sync_hive", 13);
