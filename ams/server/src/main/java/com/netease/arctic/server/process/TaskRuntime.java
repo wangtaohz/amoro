@@ -308,7 +308,7 @@ public class TaskRuntime<I, O> extends StatedPersistentBase {
   }
 
   public enum Status {
-    PLANNED,
+    PLANNED, // TODO wangtaohz refactor it to INIT
     SCHEDULED,
     ACKED,
     FAILED,
