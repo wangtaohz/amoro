@@ -16,11 +16,8 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.optimizing;
+package com.netease.arctic.hive.optimizing;
 
-import com.netease.arctic.process.TaskExecutorFactory;
+import com.netease.arctic.optimizing.IcebergTableCommitExecutor;
 
-/** A factory to create {@link OptimizingExecutor} */
-public interface OptimizingExecutorFactory<
-        I extends TableOptimizing.OptimizingInput, O extends TableOptimizing.OptimizingOutput>
-    extends TaskExecutorFactory<I, O> {}
+public class MixedHiveCommitExecutor extends IcebergTableCommitExecutor {}

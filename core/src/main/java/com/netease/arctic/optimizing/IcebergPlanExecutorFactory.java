@@ -18,9 +18,21 @@
 
 package com.netease.arctic.optimizing;
 
-import com.netease.arctic.process.TaskExecutorFactory;
+import java.util.Map;
 
-/** A factory to create {@link OptimizingExecutor} */
-public interface OptimizingExecutorFactory<
-        I extends TableOptimizing.OptimizingInput, O extends TableOptimizing.OptimizingOutput>
-    extends TaskExecutorFactory<I, O> {}
+public class IcebergPlanExecutorFactory implements TableOptimizing.TablePlanExecutorFactory {
+  @Override
+  public void initialize(Map<String, String> properties) {}
+
+  @Override
+  public OptimizingExecutor<TablePlanOutput> createExecutor(TablePlanInput input) {
+    return new IcebergTablePlanExecutor(
+        input.getTable(),
+        input.getOptimizingConfig(),
+        input.getRef(),
+        input.getTargetSnapshotId(),
+        input.getTargetChangeSnapshotId(),
+        input.getFilter(),
+        input.getOptions());
+  }
+}

@@ -18,9 +18,17 @@
 
 package com.netease.arctic.optimizing;
 
-import com.netease.arctic.process.TaskExecutorFactory;
+import java.util.Map;
 
-/** A factory to create {@link OptimizingExecutor} */
-public interface OptimizingExecutorFactory<
-        I extends TableOptimizing.OptimizingInput, O extends TableOptimizing.OptimizingOutput>
-    extends TaskExecutorFactory<I, O> {}
+public abstract class BaseOptimizingOutput implements TableOptimizing.OptimizingOutput {
+  private final Map<String, String> summary;
+
+  public BaseOptimizingOutput(Map<String, String> summary) {
+    this.summary = summary;
+  }
+
+  @Override
+  public Map<String, String> summary() {
+    return summary;
+  }
+}

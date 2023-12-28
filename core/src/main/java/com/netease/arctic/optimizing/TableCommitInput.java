@@ -25,7 +25,7 @@ import org.apache.iceberg.DeleteFile;
 import java.util.Map;
 import java.util.Set;
 
-public class TableCommitInput {
+public class TableCommitInput extends BaseOptimizingInput {
   private ArcticTable table;
   private long targetSnapshotId;
   private Set<DataFile> dataFilesToReplace;

@@ -23,14 +23,17 @@ import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 
-public class TablePlanOutput implements TableOptimizing.OptimizingOutput {
+public class TablePlanOutput extends BaseOptimizingOutput {
 
   private final OptimizingType optimizingType;
   private final List<RewriteFilesInput> rewriteFilesInputs;
   private final Map<String, String> summary = Maps.newHashMap();
 
   public TablePlanOutput(
-      OptimizingType optimizingType, List<RewriteFilesInput> rewriteFilesInputs) {
+      OptimizingType optimizingType,
+      List<RewriteFilesInput> rewriteFilesInputs,
+      Map<String, String> summary) {
+    super(summary);
     this.optimizingType = optimizingType;
     this.rewriteFilesInputs = rewriteFilesInputs;
   }

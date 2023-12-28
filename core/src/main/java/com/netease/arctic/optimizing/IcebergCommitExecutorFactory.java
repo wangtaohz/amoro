@@ -18,21 +18,18 @@
 
 package com.netease.arctic.optimizing;
 
+import com.netease.arctic.process.TaskExecutor;
+
 import java.util.Map;
 
-public class TablePlanExecutorFactory implements OptimizingExecutorFactory<TablePlanInput> {
+public class IcebergCommitExecutorFactory implements TableOptimizing.TableCommitExecutorFactory {
   @Override
-  public void initialize(Map<String, String> properties) {}
+  public void initialize(Map<String, String> properties) {
+    
+  }
 
   @Override
-  public OptimizingExecutor<TablePlanOutput> createExecutor(TablePlanInput input) {
-    return new TablePlanExecutor(
-        input.getTable(),
-        input.getOptimizingConfig(),
-        input.getRef(),
-        input.getTargetSnapshotId(),
-        input.getTargetChangeSnapshotId(),
-        input.getFilter(),
-        input.getOptions());
+  public TaskExecutor<TableCommitOutput> createExecutor(TableCommitInput input) {
+    return new IcebergTableCommitExecutor();
   }
 }

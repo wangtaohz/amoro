@@ -18,15 +18,20 @@
 
 package com.netease.arctic.optimizing;
 
-public class TableCommitOutput {
+import java.util.Collections;
+import java.util.Map;
+
+public class TableCommitOutput extends BaseOptimizingOutput {
   private long snapshotId;
   private String errorMessage;
 
-  public TableCommitOutput(long snapshotId) {
+  public TableCommitOutput(long snapshotId, Map<String, String> summary) {
+    super(summary);
     this.snapshotId = snapshotId;
   }
 
   public TableCommitOutput(String errorMessage) {
+    super(Collections.emptyMap());
     this.errorMessage = errorMessage;
   }
 

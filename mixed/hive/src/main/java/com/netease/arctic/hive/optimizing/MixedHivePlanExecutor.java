@@ -19,14 +19,14 @@
 package com.netease.arctic.hive.optimizing;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
-import com.netease.arctic.optimizing.TablePlanExecutor;
-import com.netease.arctic.optimizing.plan.OptimizingPlanner;
+import com.netease.arctic.hive.optimizing.plan.HiveOptimizingPlanner;
+import com.netease.arctic.optimizing.IcebergTablePlanExecutor;
 import com.netease.arctic.table.ArcticTable;
 import org.apache.iceberg.expressions.Expressions;
 
 import java.util.Map;
 
-public class MixedHivePlanExecutor extends TablePlanExecutor {
+public class MixedHivePlanExecutor extends IcebergTablePlanExecutor {
   public MixedHivePlanExecutor(
       ArcticTable table,
       OptimizingConfig optimizingConfig,
@@ -39,7 +39,8 @@ public class MixedHivePlanExecutor extends TablePlanExecutor {
   }
 
   @Override
-  public OptimizingPlanner buildTablePlanner() {
-    return new 
+  public HiveOptimizingPlanner buildTablePlanner() {
+    // TODO
+    return null;
   }
 }

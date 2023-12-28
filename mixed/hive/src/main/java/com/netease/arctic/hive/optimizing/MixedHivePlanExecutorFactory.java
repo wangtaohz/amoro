@@ -19,13 +19,13 @@
 package com.netease.arctic.hive.optimizing;
 
 import com.netease.arctic.optimizing.OptimizingExecutor;
-import com.netease.arctic.optimizing.OptimizingExecutorFactory;
+import com.netease.arctic.optimizing.TableOptimizing;
 import com.netease.arctic.optimizing.TablePlanInput;
 import com.netease.arctic.optimizing.TablePlanOutput;
 
 import java.util.Map;
 
-public class MixedHivePlanExecutorFactory implements OptimizingExecutorFactory<TablePlanInput> {
+public class MixedHivePlanExecutorFactory implements TableOptimizing.TablePlanExecutorFactory {
 
   @Override
   public void initialize(Map<String, String> properties) {}

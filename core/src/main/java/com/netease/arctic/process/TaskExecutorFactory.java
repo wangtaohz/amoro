@@ -16,11 +16,18 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.optimizing;
+package com.netease.arctic.process;
 
-import com.netease.arctic.process.TaskExecutorFactory;
+import java.io.Serializable;
+import java.util.Map;
 
-/** A factory to create {@link OptimizingExecutor} */
-public interface OptimizingExecutorFactory<
-        I extends TableOptimizing.OptimizingInput, O extends TableOptimizing.OptimizingOutput>
-    extends TaskExecutorFactory<I, O> {}
+public interface TaskExecutorFactory<I extends TaskExecutor.Input, O extends TaskExecutor.Output>
+    extends Serializable {
+  /**
+   * After constructing the factory through a parameterless constructor, it is necessary to call the
+   * initialize method to initialize the factory.
+   */
+  void initialize(Map<String, String> properties);
+
+  TaskExecutor<O> createExecutor(I input);
+}

@@ -26,6 +26,7 @@ import java.util.Map;
  *
  * @param <O>
  */
+@Deprecated
 public interface OptimizingCommitterFactory<O extends TableOptimizing.OptimizingOutput>
     extends Serializable {
 

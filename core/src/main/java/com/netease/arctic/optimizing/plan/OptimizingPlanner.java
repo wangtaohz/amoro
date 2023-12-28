@@ -19,6 +19,7 @@
 package com.netease.arctic.optimizing.plan;
 
 import com.netease.arctic.ams.api.TableFormat;
+import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.server.table.TableRuntime;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.utils.ExpressionUtil;
@@ -165,37 +166,5 @@ public class OptimizingPlanner extends OptimizingEvaluator {
 
   public long getProcessId() {
     return processId;
-  }
-
-  private static class PartitionPlannerFactory {
-    private final ArcticTable arcticTable;
-    private final TableRuntime tableRuntime;
-    private final String hiveLocation;
-    private final long planTime;
-
-    public PartitionPlannerFactory(
-        ArcticTable arcticTable, TableRuntime tableRuntime, long planTime) {
-      this.arcticTable = arcticTable;
-      this.tableRuntime = tableRuntime;
-      this.planTime = planTime;
-      if (com.netease.arctic.hive.utils.TableTypeUtil.isHive(arcticTable)) {
-        this.hiveLocation = (((SupportHive) arcticTable).hiveLocation());
-      } else {
-        this.hiveLocation = null;
-      }
-    }
-
-    public PartitionEvaluator buildPartitionPlanner(Pair<Integer, StructLike> partition) {
-      if (TableFormat.ICEBERG == arcticTable.format()) {
-        return new IcebergPartitionPlan(tableRuntime, arcticTable, partition, planTime);
-      } else {
-        if (com.netease.arctic.hive.utils.TableTypeUtil.isHive(arcticTable)) {
-          return new MixedHivePartitionPlan(
-              tableRuntime, arcticTable, partition, hiveLocation, planTime);
-        } else {
-          return new MixedIcebergPartitionPlan(tableRuntime, arcticTable, partition, planTime);
-        }
-      }
-    }
   }
 }

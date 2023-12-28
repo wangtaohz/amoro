@@ -25,7 +25,7 @@ import org.apache.iceberg.expressions.Expressions;
 
 import java.util.Map;
 
-public class TablePlanExecutor implements OptimizingExecutor<TablePlanOutput> {
+public class IcebergTablePlanExecutor implements OptimizingExecutor<TablePlanOutput> {
   private final ArcticTable table;
   private final OptimizingConfig optimizingConfig;
   private final String ref;
@@ -34,7 +34,7 @@ public class TablePlanExecutor implements OptimizingExecutor<TablePlanOutput> {
   private final Expressions filter;
   private final Map<String, String> options;
 
-  public TablePlanExecutor(
+  public IcebergTablePlanExecutor(
       ArcticTable table,
       OptimizingConfig optimizingConfig,
       String ref,
@@ -55,8 +55,10 @@ public class TablePlanExecutor implements OptimizingExecutor<TablePlanOutput> {
   public TablePlanOutput execute() {
     return null;
   }
-  
+
   public OptimizingPlanner buildTablePlanner() {
-    return new OptimizingPlanner();
+    // TODO
+    return null;
+    //    return new OptimizingPlanner();
   }
 }
