@@ -23,34 +23,37 @@ import com.netease.arctic.table.ArcticTable;
 import org.apache.iceberg.expressions.Expressions;
 
 public class TablePlanInput extends BaseOptimizingInput {
-  private ArcticTable table;
-  private OptimizingConfig optimizingConfig;
-  private String ref;
-  private long targetSnapshotId;
-  private long targetChangeSnapshotId;
-  private Expressions filter;
+  private final ArcticTable table;
+  private final OptimizingConfig optimizingConfig;
+  private final long targetSnapshotId;
+  private final long targetChangeSnapshotId;
+  private final OptimizingType optimizingType;
+  private final long lastOptimizingTime;
+  private final Expressions filter;
 
   public TablePlanInput(
       ArcticTable table,
       OptimizingConfig optimizingConfig,
-      String ref,
       long targetSnapshotId,
       long targetChangeSnapshotId,
+      OptimizingType optimizingType,
+      long lastOptimizingTime,
       Expressions filter) {
     this.table = table;
     this.optimizingConfig = optimizingConfig;
-    this.ref = ref;
     this.targetSnapshotId = targetSnapshotId;
     this.targetChangeSnapshotId = targetChangeSnapshotId;
+    this.optimizingType = optimizingType;
+    this.lastOptimizingTime = lastOptimizingTime;
     this.filter = filter;
+  }
+
+  public ArcticTable getTable() {
+    return table;
   }
 
   public OptimizingConfig getOptimizingConfig() {
     return optimizingConfig;
-  }
-
-  public String getRef() {
-    return ref;
   }
 
   public long getTargetSnapshotId() {
@@ -61,8 +64,12 @@ public class TablePlanInput extends BaseOptimizingInput {
     return targetChangeSnapshotId;
   }
 
-  public ArcticTable getTable() {
-    return table;
+  public OptimizingType getOptimizingType() {
+    return optimizingType;
+  }
+
+  public long getLastOptimizingTime() {
+    return lastOptimizingTime;
   }
 
   public Expressions getFilter() {
