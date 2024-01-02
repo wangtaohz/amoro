@@ -65,13 +65,13 @@ public abstract class TaskScheduler<T extends TableState>
   }
 
   private void run(DefaultTableRuntime tableRuntime, Action action) {
-    if (action == Action.OPTIMIZING) {
+    if (action == Action.MINOR_OPTIMIZING) {
       // TODO wangtaohz add process to tableProcessQueue?
       printProcessIfNecessary(
-          tableRuntime.runOptimizing(), false, tableRuntime.getTableIdentifier());
+          tableRuntime.runMinorOptimizing(), false, tableRuntime.getTableIdentifier());
     } else {
       printProcessIfNecessary(
-          tableRuntime.runAction(action), false, tableRuntime.getTableIdentifier());
+          tableRuntime.runMajorOptimizing(), false, tableRuntime.getTableIdentifier());
     }
   }
 

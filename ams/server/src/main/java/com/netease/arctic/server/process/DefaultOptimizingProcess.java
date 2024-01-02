@@ -21,7 +21,6 @@
 package com.netease.arctic.server.process;
 
 import com.netease.arctic.ams.api.OptimizingTaskId;
-import com.netease.arctic.ams.api.TableRuntime;
 import com.netease.arctic.ams.api.process.OptimizingStage;
 import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.optimizing.RewriteFilesInput;
@@ -33,7 +32,13 @@ import com.netease.arctic.optimizing.TablePlanOutput;
 import com.netease.arctic.server.persistence.PersistentBase;
 import com.netease.arctic.server.persistence.TaskFilesPersistence;
 import com.netease.arctic.server.persistence.mapper.OptimizingMapper;
+import com.netease.arctic.server.process.task.TableCommitInput;
+import com.netease.arctic.server.process.task.TableCommitOutput;
+import com.netease.arctic.server.process.task.TablePlanInput;
+import com.netease.arctic.server.process.task.TablePlanOutput;
+import com.netease.arctic.server.table.DefaultTableRuntime;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
+import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 
 import java.util.ArrayList;
@@ -43,8 +48,7 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingState>
-    implements QuotaConsumer {
+public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingState> {
 
   // TODO wangtaohz COMMIT_TASK_SEQUENCE
   private static final int COMMMIT_TASK_SEQUENCE = Integer.MAX_VALUE;
@@ -53,12 +57,14 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
   // TODO wangtaohz executing tasks
   private final Map<OptimizingTaskId, TaskRuntime<?, ?>> executingMap = Maps.newHashMap();
   private final LinkedList<TaskRuntime<?, ?>> taskQueue = new LinkedList<>();
+  private final QuotaProvider optimizingQuota;
   private final Lock executingLock = new ReentrantLock();
   private volatile String summary;
 
   public DefaultOptimizingProcess(
-      DefaultOptimizingState optimizingState, TableRuntime tableRuntime, boolean recover) {
+      DefaultOptimizingState optimizingState, DefaultTableRuntime tableRuntime, boolean recover) {
     super(optimizingState, tableRuntime);
+    optimizingQuota = tableRuntime.getOptimizingQuota();
     if (recover) {
       processId = getState().getId();
       state.saveProcessRecoverd(this);
@@ -68,22 +74,13 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
     }
   }
 
-  public long getQuotaRuntime() {
-    executingLock.lock();
-    try {
-      return executingMap.values().stream().mapToLong(TaskRuntime::getQuotaRuntime).sum();
-    } finally {
-      executingLock.unlock();
-    }
-  }
-
   @Override
   public void submit() {
     Preconditions.checkState(
         state.getStage() != OptimizingStage.IDLE && state.getStage() != OptimizingStage.PENDING);
     if (state.getStage() == OptimizingStage.PLANNING) {
       TaskRuntime<TablePlanInput, TablePlanOutput> planTask = new TablePlanTaskBuilder().build();
-      handleAsyncTask(planTask, () -> handlePlanningCompleted(planTask));
+      submitAsyncTask(planTask, () -> handlePlanningCompleted(planTask));
     } else {
       recoverTaskRuntimes();
     }
@@ -95,6 +92,11 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
         || taskRuntime.getStatus() == TaskRuntime.Status.FAILED) {
       taskQueue.offer(taskRuntime);
     }
+  }
+
+  @Override
+  protected void handleTaskFailed(TaskRuntime<?, ?> taskRuntime) {
+    optimizingQuota.removeConsumer(taskRuntime, false);
   }
 
   private void handlePlanningCompleted(TaskRuntime<TablePlanInput, TablePlanOutput> planTask) {
@@ -109,22 +111,6 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
         .persistOptimizingTasksAndStage(planTask.getOutput().getOptimizingType(), optimizingTasks);
     optimizingTasks.forEach(this::handleSingleOptimizingTask);
     completeSubmitting();
-  }
-
-  private void handleSingleOptimizingTask(
-      TaskRuntime<RewriteFilesInput, RewriteFilesOutput> taskRuntime) {
-    handleAsyncTask(
-        taskRuntime,
-        () -> {
-          if (taskRuntime.getStatus() == TaskRuntime.Status.SUCCESS) {
-            if (allTasksPrepared()) {
-              TaskRuntime<TableCommitInput, TableCommitOutput> committingTask =
-                  new TableCommitTaskBuilder().build();
-              new Persistence().persistCommittingTaskAndStage(committingTask);
-              handleAsyncTask(committingTask, this::handleCommittingCompleted);
-            }
-          }
-        });
   }
 
   @Override
@@ -161,11 +147,29 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
     }
   }
 
-  private void handleCommittingCompleted() {
+  private void handleSingleOptimizingTask(
+      TaskRuntime<RewriteFilesInput, RewriteFilesOutput> taskRuntime) {
+    submitAsyncTask(
+        taskRuntime,
+        () -> {
+          if (taskRuntime.getStatus() == TaskRuntime.Status.SUCCESS) {
+            optimizingQuota.removeConsumer(taskRuntime, false);
+            if (allTasksPrepared()) {
+              TaskRuntime<TableCommitInput, TableCommitOutput> committingTask =
+                  new TableCommitTaskBuilder().build();
+              new Persistence().persistCommittingTaskAndStage(committingTask);
+              submitAsyncTask(committingTask, () -> handleCommittingCompleted(committingTask));
+            }
+          }
+        });
+  }
+
+  private void handleCommittingCompleted(TaskRuntime<?, ?> taskRuntime) {
     LOG.info(
         "Completed committing table {} with {} tasks",
         tableRuntime.getTableIdentifier(),
         executingMap.size());
+    optimizingQuota.removeConsumer(taskRuntime, state.getOptimizingType() == OptimizingType.MAJOR);
     complete();
   }
 
@@ -204,14 +208,15 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
                 (TaskRuntime<TableCommitInput, TableCommitOutput>) taskRuntime;
             // TODO wangtaohz fix loading from sysdb
             committingTask.setInput(new TableCommitInput());
-            handleAsyncTask(committingTask, this::handleCommittingCompleted);
+            submitAsyncTask(committingTask, () -> handleCommittingCompleted(committingTask));
           } else {
             TaskRuntime<RewriteFilesInput, RewriteFilesOutput> optimizingTask =
                 (TaskRuntime<RewriteFilesInput, RewriteFilesOutput>) taskRuntime;
             optimizingTask.setInput(inputs.get(taskRuntime.getTaskId().getTaskId()));
-            handleAsyncTask(optimizingTask, () -> handleSingleOptimizingTask(optimizingTask));
+            submitAsyncTask(optimizingTask, () -> handleSingleOptimizingTask(optimizingTask));
           }
         });
+    optimizingQuota.addConsumer(state, executingMap.values());
   }
 
   public String getSummary() {
@@ -221,11 +226,6 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
   @Override
   public long getId() {
     return processId;
-  }
-
-  @Override
-  public long getStartTime() {
-    return state.getStartTime();
   }
 
   private class Persistence extends PersistentBase {
@@ -244,6 +244,7 @@ public class DefaultOptimizingProcess extends ManagedProcess<DefaultOptimizingSt
             doAs(OptimizingMapper.class, mapper -> mapper.insertTaskRuntime(committingTask));
             state.saveCommittingStage();
             executingMap.put(committingTask.getTaskId(), committingTask);
+            optimizingQuota.addConsumer(state, Lists.newArrayList(committingTask));
           });
     }
 
