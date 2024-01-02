@@ -18,12 +18,11 @@
 
 package com.netease.arctic.optimizing.plan;
 
+import com.netease.arctic.ams.api.config.OptimizingConfig;
 import com.netease.arctic.data.DataFileType;
 import com.netease.arctic.data.DataTreeNode;
 import com.netease.arctic.data.PrimaryKeyedFile;
-import com.netease.arctic.hive.optimizing.MixFormatRewriteExecutorFactory;
 import com.netease.arctic.optimizing.OptimizingInputProperties;
-import com.netease.arctic.server.table.TableRuntime;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.table.TableProperties;
 import com.netease.arctic.utils.TablePropertyUtil;
@@ -49,11 +48,11 @@ public class MixedIcebergPartitionPlan extends AbstractPartitionPlan {
   protected final Map<String, String> partitionProperties;
 
   public MixedIcebergPartitionPlan(
-      TableRuntime tableRuntime,
       ArcticTable table,
       Pair<Integer, StructLike> partition,
+      OptimizingConfig config,
       long planTime) {
-    super(tableRuntime, table, partition, planTime);
+    super(table, partition, config, planTime);
     this.partitionProperties = TablePropertyUtil.getPartitionProperties(table, partition.second());
   }
 
@@ -81,7 +80,8 @@ public class MixedIcebergPartitionPlan extends AbstractPartitionPlan {
   @Override
   protected OptimizingInputProperties buildTaskProperties() {
     OptimizingInputProperties properties = new OptimizingInputProperties();
-    properties.setExecutorFactoryImpl(MixFormatRewriteExecutorFactory.class.getName());
+    properties.setExecutorFactoryImpl(
+        "com.netease.arctic.hive.optimizing.MixFormatRewriteExecutorFactory");
     return properties;
   }
 
@@ -99,9 +99,9 @@ public class MixedIcebergPartitionPlan extends AbstractPartitionPlan {
   }
 
   @Override
-  protected CommonPartitionEvaluator buildEvaluator() {
+  protected CommonPartitionEvaluator buildPartitionEvaluator() {
     return new MixedIcebergPartitionEvaluator(
-        tableRuntime, partition, partitionProperties, planTime, isKeyedTable());
+        config, partition, partitionProperties, planTime, isKeyedTable());
   }
 
   protected static class MixedIcebergPartitionEvaluator extends CommonPartitionEvaluator {
@@ -110,12 +110,12 @@ public class MixedIcebergPartitionPlan extends AbstractPartitionPlan {
     private final boolean reachBaseRefreshInterval;
 
     public MixedIcebergPartitionEvaluator(
-        TableRuntime tableRuntime,
+        OptimizingConfig config,
         Pair<Integer, StructLike> partition,
         Map<String, String> partitionProperties,
         long planTime,
         boolean keyedTable) {
-      super(tableRuntime, partition, planTime);
+      super(config, partition, planTime);
       this.keyedTable = keyedTable;
       String optimizedTime = partitionProperties.get(TableProperties.PARTITION_BASE_OPTIMIZED_TIME);
       long lastBaseOptimizedTime = optimizedTime == null ? 0 : Long.parseLong(optimizedTime);

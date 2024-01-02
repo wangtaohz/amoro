@@ -19,8 +19,10 @@
 package com.netease.arctic.optimizing.plan;
 
 import com.netease.arctic.ams.api.TableFormat;
+import com.netease.arctic.ams.api.config.OptimizingConfig;
+import com.netease.arctic.ams.api.process.PendingInput;
 import com.netease.arctic.optimizing.OptimizingType;
-import com.netease.arctic.server.table.TableRuntime;
+import com.netease.arctic.optimizing.RewriteFilesInput;
 import com.netease.arctic.table.ArcticTable;
 import com.netease.arctic.utils.ExpressionUtil;
 import org.apache.iceberg.StructLike;
@@ -41,43 +43,43 @@ public class OptimizingPlanner extends OptimizingEvaluator {
 
   private final Expression partitionFilter;
 
-  protected long processId;
   private final double availableCore;
   protected final long planTime;
   private OptimizingType optimizingType;
-  private List<TaskDescriptor> tasks;
+  private List<RewriteFilesInput> tasks;
 
-  private List<AbstractPartitionPlan> actualPartitionPlans;
   private final long maxInputSizePerThread;
 
   public OptimizingPlanner(
-      TableRuntime tableRuntime,
       ArcticTable table,
+      OptimizingConfig config,
+      PendingInput pendingInput,
       double availableCore,
       long maxInputSizePerThread) {
-    super(tableRuntime, table);
+    super(
+        table,
+        config,
+        pendingInput.getCurrentSnapshotId(),
+        pendingInput.getCurrentChangeSnapshotId());
     this.partitionFilter =
-        tableRuntime.getPendingInput() == null
-            ? Expressions.alwaysTrue()
-            : tableRuntime.getPendingInput().getPartitions().entrySet().stream()
-                .map(
-                    entry ->
-                        ExpressionUtil.convertPartitionDataToDataFilter(
-                            table, entry.getKey(), entry.getValue()))
-                .reduce(Expressions::or)
-                .orElse(Expressions.alwaysTrue());
+        pendingInput.getPartitions().entrySet().stream()
+            .map(
+                entry ->
+                    ExpressionUtil.convertPartitionDataToDataFilter(
+                        table, entry.getKey(), entry.getValue()))
+            .reduce(Expressions::or)
+            .orElse(Expressions.alwaysTrue());
     this.availableCore = availableCore;
     this.planTime = System.currentTimeMillis();
-    this.processId = Math.max(tableRuntime.getNewestProcessId() + 1, planTime);
     this.maxInputSizePerThread = maxInputSizePerThread;
   }
 
   @Override
-  protected PartitionEvaluator buildEvaluator(Pair<Integer, StructLike> partition) {
+  protected PartitionEvaluator buildPartitionEvaluator(Pair<Integer, StructLike> partition) {
     if (TableFormat.ICEBERG == arcticTable.format()) {
-      return new IcebergPartitionPlan(tableRuntime, arcticTable, partition, planTime);
+      return new IcebergPartitionPlan(arcticTable, partition, config, planTime);
     } else {
-      return new MixedIcebergPartitionPlan(tableRuntime, arcticTable, partition, planTime);
+      return new MixedIcebergPartitionPlan(arcticTable, partition, config, planTime);
     }
   }
 
@@ -94,7 +96,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     return !planTasks().isEmpty();
   }
 
-  public List<TaskDescriptor> planTasks() {
+  public List<RewriteFilesInput> planTasks() {
     if (this.tasks != null) {
       return this.tasks;
     }
@@ -103,7 +105,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
       initEvaluator();
     }
     if (!super.isNecessary()) {
-      LOG.debug("Table {} skip planning", tableRuntime.getTableIdentifier());
+      LOG.debug("Table {} skip planning", arcticTable.id());
       return cacheAndReturnTasks(Collections.emptyList());
     }
 
@@ -112,7 +114,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     evaluators.sort(Comparator.comparing(PartitionEvaluator::getWeight, Comparator.reverseOrder()));
 
     double maxInputSize = maxInputSizePerThread * availableCore;
-    actualPartitionPlans = Lists.newArrayList();
+    List<AbstractPartitionPlan> actualPartitionPlans = Lists.newArrayList();
     long actualInputSize = 0;
     for (PartitionEvaluator evaluator : evaluators) {
       actualPartitionPlans.add((AbstractPartitionPlan) evaluator);
@@ -123,7 +125,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     }
 
     double avgThreadCost = actualInputSize / availableCore;
-    List<TaskDescriptor> tasks = Lists.newArrayList();
+    List<RewriteFilesInput> tasks = Lists.newArrayList();
     for (AbstractPartitionPlan partitionPlan : actualPartitionPlans) {
       tasks.addAll(partitionPlan.splitTasks((int) (actualInputSize / avgThreadCost)));
     }
@@ -141,7 +143,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     long endTime = System.nanoTime();
     LOG.info(
         "{} finish plan, type = {}, get {} tasks, cost {} ns, {} ms maxInputSize {} actualInputSize {}",
-        tableRuntime.getTableIdentifier(),
+        arcticTable.id(),
         getOptimizingType(),
         tasks.size(),
         endTime - startTime,
@@ -151,7 +153,7 @@ public class OptimizingPlanner extends OptimizingEvaluator {
     return cacheAndReturnTasks(tasks);
   }
 
-  private List<TaskDescriptor> cacheAndReturnTasks(List<TaskDescriptor> tasks) {
+  private List<RewriteFilesInput> cacheAndReturnTasks(List<RewriteFilesInput> tasks) {
     this.tasks = tasks;
     return this.tasks;
   }
@@ -162,9 +164,5 @@ public class OptimizingPlanner extends OptimizingEvaluator {
 
   public OptimizingType getOptimizingType() {
     return optimizingType;
-  }
-
-  public long getProcessId() {
-    return processId;
   }
 }

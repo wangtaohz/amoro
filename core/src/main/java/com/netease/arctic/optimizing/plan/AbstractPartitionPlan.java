@@ -20,12 +20,11 @@ package com.netease.arctic.optimizing.plan;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
 import com.netease.arctic.optimizing.OptimizingInputProperties;
+import com.netease.arctic.optimizing.OptimizingType;
 import com.netease.arctic.optimizing.RewriteFilesInput;
 import com.netease.arctic.table.ArcticTable;
-import com.netease.arctic.utils.ArcticTableUtil;
 import org.apache.iceberg.ContentFile;
 import org.apache.iceberg.DataFile;
-import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.relocated.com.google.common.collect.Lists;
 import org.apache.iceberg.relocated.com.google.common.collect.Maps;
@@ -45,7 +44,6 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
 
   protected final Pair<Integer, StructLike> partition;
   protected final OptimizingConfig config;
-  protected final TableRuntime tableRuntime;
   private CommonPartitionEvaluator evaluator;
   private TaskSplitter taskSplitter;
   protected ArcticTable tableObject;
@@ -71,14 +69,13 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
   protected final Set<String> reservedDeleteFiles = Sets.newHashSet();
 
   public AbstractPartitionPlan(
-      TableRuntime tableRuntime,
       ArcticTable table,
       Pair<Integer, StructLike> partition,
+      OptimizingConfig config,
       long planTime) {
     this.partition = partition;
     this.tableObject = table;
-    this.config = tableRuntime.getOptimizingConfig();
-    this.tableRuntime = tableRuntime;
+    this.config = config;
     this.planTime = planTime;
   }
 
@@ -89,13 +86,13 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
 
   protected CommonPartitionEvaluator evaluator() {
     if (evaluator == null) {
-      evaluator = buildEvaluator();
+      evaluator = buildPartitionEvaluator();
     }
     return evaluator;
   }
 
-  protected CommonPartitionEvaluator buildEvaluator() {
-    return new CommonPartitionEvaluator(tableRuntime, partition, planTime);
+  protected CommonPartitionEvaluator buildPartitionEvaluator() {
+    return new CommonPartitionEvaluator(config, partition, planTime);
   }
 
   @Override
@@ -138,7 +135,7 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
     deletes.stream().map(delete -> delete.path().toString()).forEach(reservedDeleteFiles::add);
   }
 
-  public List<TaskDescriptor> splitTasks(int targetTaskCount) {
+  public List<RewriteFilesInput> splitTasks(int targetTaskCount) {
     if (taskSplitter == null) {
       taskSplitter = buildTaskSplitter();
     }
@@ -268,7 +265,7 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
       return rewritePosDataFiles;
     }
 
-    public TaskDescriptor buildTask(OptimizingInputProperties properties) {
+    public RewriteFilesInput buildTask(OptimizingInputProperties properties) {
       Set<ContentFile<?>> readOnlyDeleteFiles = Sets.newHashSet();
       Set<ContentFile<?>> rewriteDeleteFiles = Sets.newHashSet();
       for (ContentFile<?> deleteFile : deleteFiles) {
@@ -285,14 +282,8 @@ public abstract class AbstractPartitionPlan implements PartitionEvaluator {
               readOnlyDeleteFiles.toArray(new ContentFile[0]),
               rewriteDeleteFiles.toArray(new ContentFile[0]),
               tableObject);
-      PartitionSpec spec =
-          ArcticTableUtil.getArcticTablePartitionSpecById(tableObject, partition.first());
-      String partitionPath = spec.partitionToPath(partition.second());
-      return new TaskDescriptor(
-          tableRuntime.getTableIdentifier().getId(),
-          partitionPath,
-          input,
-          properties.getProperties());
+      input.options(properties.getProperties());
+      return input;
     }
   }
 

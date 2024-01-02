@@ -19,33 +19,30 @@
 package com.netease.arctic.hive.optimizing.plan;
 
 import com.netease.arctic.ams.api.config.OptimizingConfig;
-import com.netease.arctic.ams.api.process.PendingInput;
 import com.netease.arctic.hive.table.SupportHive;
-import com.netease.arctic.optimizing.plan.OptimizingPlanner;
+import com.netease.arctic.optimizing.plan.OptimizingEvaluator;
 import com.netease.arctic.optimizing.plan.PartitionEvaluator;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.util.Pair;
 
-public class HiveOptimizingPlanner extends OptimizingPlanner {
-
-  private final String hiveLocation;
-
-  public HiveOptimizingPlanner(
-      SupportHive table,
-      OptimizingConfig config,
-      PendingInput pendingInput,
-      double availableCore,
-      long maxInputSizePerThread) {
-    super(table, config, pendingInput, availableCore, maxInputSizePerThread);
-    this.hiveLocation = table.hiveLocation();
+public class HiveOptimizingEvaluator extends OptimizingEvaluator {
+  public HiveOptimizingEvaluator(
+      SupportHive table, OptimizingConfig config, long snapshotId, long changeSnapshotId) {
+    super(table, config, snapshotId, changeSnapshotId);
   }
 
-  private SupportHive hiveTable() {
+  protected SupportHive hiveTable() {
     return (SupportHive) arcticTable;
   }
 
   @Override
   protected PartitionEvaluator buildPartitionEvaluator(Pair<Integer, StructLike> partition) {
-    return new MixedHivePartitionPlan(hiveTable(), partition, config, hiveLocation, planTime);
+    return new MixedHivePartitionPlan.MixedHivePartitionEvaluator(
+        config,
+        partition,
+        partitionProperties(partition),
+        hiveTable().hiveLocation(),
+        System.currentTimeMillis(),
+        arcticTable.isKeyedTable());
   }
 }

@@ -18,6 +18,7 @@
 
 package com.netease.arctic.hive.optimizing.plan;
 
+import com.netease.arctic.ams.api.config.OptimizingConfig;
 import com.netease.arctic.data.DataFileType;
 import com.netease.arctic.data.PrimaryKeyedFile;
 import com.netease.arctic.hive.HiveTableProperties;
@@ -27,7 +28,6 @@ import com.netease.arctic.optimizing.OptimizingInputProperties;
 import com.netease.arctic.optimizing.plan.CommonPartitionEvaluator;
 import com.netease.arctic.optimizing.plan.MixedIcebergPartitionPlan;
 import com.netease.arctic.optimizing.plan.PartitionEvaluator;
-import com.netease.arctic.server.table.TableRuntime;
 import org.apache.iceberg.ContentFile;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.StructLike;
@@ -43,12 +43,12 @@ public class MixedHivePartitionPlan extends MixedIcebergPartitionPlan {
   private String customHiveSubdirectory;
 
   public MixedHivePartitionPlan(
-      TableRuntime tableRuntime,
       SupportHive table,
       Pair<Integer, StructLike> partition,
+      OptimizingConfig config,
       String hiveLocation,
       long planTime) {
-    super(tableRuntime, table, partition, planTime);
+    super(table, partition, config, planTime);
     this.hiveLocation = hiveLocation;
   }
 
@@ -90,9 +90,9 @@ public class MixedHivePartitionPlan extends MixedIcebergPartitionPlan {
   }
 
   @Override
-  protected CommonPartitionEvaluator buildEvaluator() {
+  protected CommonPartitionEvaluator buildPartitionEvaluator() {
     return new MixedHivePartitionEvaluator(
-        tableRuntime, partition, partitionProperties, hiveLocation, planTime, isKeyedTable());
+        config, partition, partitionProperties, hiveLocation, planTime, isKeyedTable());
   }
 
   @Override
@@ -124,13 +124,13 @@ public class MixedHivePartitionPlan extends MixedIcebergPartitionPlan {
     private boolean filesNotInHiveLocation = false;
 
     public MixedHivePartitionEvaluator(
-        TableRuntime tableRuntime,
+        OptimizingConfig config,
         Pair<Integer, StructLike> partition,
         Map<String, String> partitionProperties,
         String hiveLocation,
         long planTime,
         boolean keyedTable) {
-      super(tableRuntime, partition, partitionProperties, planTime, keyedTable);
+      super(config, partition, partitionProperties, planTime, keyedTable);
       this.hiveLocation = hiveLocation;
       String optimizedTime =
           partitionProperties.get(HiveTableProperties.PARTITION_PROPERTIES_KEY_TRANSIENT_TIME);

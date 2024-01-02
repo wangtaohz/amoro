@@ -38,7 +38,6 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
   private static final Logger LOG = LoggerFactory.getLogger(CommonPartitionEvaluator.class);
 
   private final Set<String> deleteFileSet = Sets.newHashSet();
-  protected final TableRuntime tableRuntime;
 
   private final Pair<Integer, StructLike> partition;
   protected final OptimizingConfig config;
@@ -71,13 +70,11 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
   private long cost = -1;
   private Boolean necessary = null;
   private OptimizingType optimizingType = null;
-  private String name;
 
   public CommonPartitionEvaluator(
-      TableRuntime tableRuntime, Pair<Integer, StructLike> partition, long planTime) {
+      OptimizingConfig config, Pair<Integer, StructLike> partition, long planTime) {
     this.partition = partition;
-    this.tableRuntime = tableRuntime;
-    this.config = tableRuntime.getOptimizingConfig();
+    this.config = config;
     this.fragmentSize = config.getTargetSize() / config.getFragmentRatio();
     this.minTargetSize = (long) (config.getTargetSize() * config.getMinTargetSizeRatio());
     if (minTargetSize > config.getTargetSize() - fragmentSize) {
@@ -86,10 +83,8 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
               + "the another merge file.");
     }
     this.planTime = planTime;
-    this.reachFullInterval =
-        config.getFullTriggerInterval() >= 0
-            && planTime - tableRuntime.getLastFullOptimizingTime()
-                > config.getFullTriggerInterval();
+    // TODO wangtaohz close full optimizing
+    this.reachFullInterval = false;
   }
 
   @Override
@@ -252,7 +247,6 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
       } else {
         necessary = isMajorNecessary() || isMinorNecessary();
       }
-      LOG.debug("{} necessary = {}, {}", name(), necessary, this);
     }
     return necessary;
   }
@@ -292,7 +286,6 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
           isFullNecessary()
               ? OptimizingType.FULL
               : isMajorNecessary() ? OptimizingType.MAJOR : OptimizingType.MINOR;
-      LOG.debug("{} optimizingType = {} ", name(), optimizingType);
     }
     return optimizingType;
   }
@@ -321,8 +314,8 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
   }
 
   protected boolean reachMinorInterval() {
-    return config.getMinorLeastInterval() >= 0
-        && planTime - tableRuntime.getLastMinorOptimizingTime() > config.getMinorLeastInterval();
+    // TODO wangtaohz minor interval
+    return false;
   }
 
   protected boolean reachFullInterval() {
@@ -338,15 +331,6 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
         || undersizedSegmentFileCount >= 2
         || rewriteSegmentFileCount > 0
         || rewritePosSegmentFileCount > 0;
-  }
-
-  protected String name() {
-    if (name == null) {
-      name =
-          String.format(
-              "partition %s of %s", partition, tableRuntime.getTableIdentifier().toString());
-    }
-    return name;
   }
 
   public boolean anyDeleteExist() {
@@ -415,9 +399,6 @@ public class CommonPartitionEvaluator implements PartitionEvaluator {
         .add("fragmentSize", fragmentSize)
         .add("undersizedSegmentSize", minTargetSize)
         .add("planTime", planTime)
-        .add("lastMinorOptimizeTime", tableRuntime.getLastMinorOptimizingTime())
-        .add("lastFullOptimizeTime", tableRuntime.getLastFullOptimizingTime())
-        .add("lastFullOptimizeTime", tableRuntime.getLastFullOptimizingTime())
         .add("fragmentFileCount", fragmentFileCount)
         .add("fragmentFileSize", fragmentFileSize)
         .add("rewriteSegmentFileCount", rewriteSegmentFileCount)
