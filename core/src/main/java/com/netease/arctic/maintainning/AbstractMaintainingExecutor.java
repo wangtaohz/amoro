@@ -16,31 +16,14 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.maintainning;
 
-import java.io.Serializable;
-import java.util.Map;
+public abstract class AbstractMaintainingExecutor
+    implements MaintainingExecutor<BasicMaintainingOutput> {
 
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
+  protected final BasicMaintainingInput input;
 
-  /* Execute task */
-  O execute();
-
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
-  }
-
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
+  public AbstractMaintainingExecutor(BasicMaintainingInput input) {
+    this.input = input;
   }
 }

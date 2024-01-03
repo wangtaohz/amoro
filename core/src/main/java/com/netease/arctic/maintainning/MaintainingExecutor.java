@@ -16,31 +16,14 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.maintainning;
 
-import java.io.Serializable;
-import java.util.Map;
+import com.netease.arctic.process.TaskExecutor;
 
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
-
-  /* Execute task */
-  O execute();
-
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
-  }
-
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
-  }
-}
+/**
+ * Maintaining executor used to do some maintenance on tables in optimizers, such as orphan file
+ * clean, snapshots expired and hive sync.
+ *
+ * @param <O>
+ */
+public interface MaintainingExecutor<O extends TaskExecutor.Output> extends TaskExecutor<O> {}

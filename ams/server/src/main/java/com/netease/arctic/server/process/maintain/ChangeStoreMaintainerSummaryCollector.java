@@ -16,31 +16,23 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.server.process.maintain;
 
-import java.io.Serializable;
-import java.util.Map;
+import com.netease.arctic.ams.api.Action;
 
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
+public class ChangeStoreMaintainerSummaryCollector extends BasicMaintainerSummaryCollector {
 
-  /* Execute task */
-  O execute();
+  public static final String changeStoreMark = "#change";
+  // snapshot expiring
+  public static final String SNAPSHOT_EXPIRING_DELETE_EXPIRED_FILE_COUNT =
+      Action.EXPIRE_SNAPSHOTS.name() + actionSeparator + "delete_change_ttl_files_count";
 
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
+  public ChangeStoreMaintainerSummaryCollector() {
+    super();
   }
 
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
+  @Override
+  public void collect(String key, String value) {
+    summary.put(key + changeStoreMark, value);
   }
 }

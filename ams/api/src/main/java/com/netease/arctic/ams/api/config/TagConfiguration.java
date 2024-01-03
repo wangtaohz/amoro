@@ -22,13 +22,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.Objects;
 import org.apache.iceberg.relocated.com.google.common.base.MoreObjects;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
 /** Configuration for auto creating tags. */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TagConfiguration {
+public class TagConfiguration implements Serializable {
   // tag.auto-create.enabled
   private boolean autoCreateTag = false;
   // tag.auto-create.daily.tag-format

@@ -3,7 +3,6 @@ package com.netease.arctic.optimizer.common;
 import com.netease.arctic.ams.api.OptimizingTask;
 import com.netease.arctic.ams.api.OptimizingTaskResult;
 import com.netease.arctic.optimizing.OptimizingInputProperties;
-import com.netease.arctic.optimizing.TableOptimizing;
 import com.netease.arctic.process.TaskExecutor;
 import com.netease.arctic.process.TaskExecutorFactory;
 import com.netease.arctic.utils.ExceptionUtil;
@@ -86,8 +85,7 @@ public class OptimizerExecutor extends AbstractOptimizerOperator {
     try {
       OptimizingInputProperties properties = OptimizingInputProperties.parse(task.getProperties());
       String executorFactoryImpl = properties.getExecutorFactoryImpl();
-      TableOptimizing.OptimizingInput input =
-          SerializationUtil.simpleDeserialize(task.getTaskInput());
+      TaskExecutor.Input input = SerializationUtil.simpleDeserialize(task.getTaskInput());
       DynConstructors.Ctor<TaskExecutorFactory> ctor =
           DynConstructors.builder(TaskExecutorFactory.class)
               .impl(executorFactoryImpl)

@@ -24,6 +24,8 @@ import com.netease.arctic.server.table.DefaultTableRuntime;
 import com.netease.arctic.table.ArcticTable;
 import org.apache.iceberg.Table;
 
+import java.util.Map;
+
 /**
  * API for maintaining table.
  *
@@ -53,12 +55,20 @@ public interface TableMaintainer {
   /** Auto create tags for table. */
   void autoCreateTags(DefaultTableRuntime tableRuntime);
 
+  /**
+   * Get the execute summary for the maintainer.
+   *
+   * @return a summary map that collects maintenance summary information.
+   */
+  Map<String, String> getSummary();
+
   static TableMaintainer ofTable(AmoroTable<?> amoroTable) {
     TableFormat format = amoroTable.format();
     if (format == TableFormat.MIXED_HIVE || format == TableFormat.MIXED_ICEBERG) {
       return new MixedTableMaintainer((ArcticTable) amoroTable.originalTable());
     } else if (format == TableFormat.ICEBERG) {
-      return new IcebergTableMaintainer((Table) amoroTable.originalTable());
+      return new IcebergTableMaintainer(
+          (Table) amoroTable.originalTable(), new BasicMaintainerSummaryCollector());
     } else {
       throw new RuntimeException("Unsupported table type" + amoroTable.originalTable().getClass());
     }

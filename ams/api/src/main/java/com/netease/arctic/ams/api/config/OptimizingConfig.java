@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
+import java.io.Serializable;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OptimizingConfig {
+public class OptimizingConfig implements Serializable {
 
   // self-optimizing.enabled
   private boolean enabled;

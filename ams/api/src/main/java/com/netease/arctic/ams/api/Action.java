@@ -28,17 +28,25 @@ import java.util.Set;
 public enum Action {
   // TODO wangtaohz data expiring
   MINOR_OPTIMIZING("minor-optimizing", 0),
+  // TODO hjm 'major-optimizing'
   MAJOR_OPTIMIZING("minor-optimizing", 1),
   EXTERNAL_OPTIMIZING("external-optimizing", 2),
   REFRESH_SNAPSHOT("refreshing", 10),
-  EXPIRE_SNAPSHOTS("expiring", 11),
+  EXPIRE_SNAPSHOTS("expiring_snapshots", 11),
   CLEAN_ORPHANED_FILES("clean_orphaned", 12),
-  HIVE_COMMIT_SYNC("sync_hive", 13);
+  CLEAN_DANGLING_DELETE_FILES("clean_dangling_delete", 13),
+  HIVE_COMMIT_SYNC("sync_hive", 14),
+  DATA_EXPIRING("expiring_data", 15);
 
   public static final Set<Action> ARBITRARY_ACTIONS =
       Collections.unmodifiableSet(
           Sets.newHashSet(
-              REFRESH_SNAPSHOT, EXPIRE_SNAPSHOTS, CLEAN_ORPHANED_FILES, HIVE_COMMIT_SYNC));
+              REFRESH_SNAPSHOT,
+              EXPIRE_SNAPSHOTS,
+              CLEAN_ORPHANED_FILES,
+              CLEAN_DANGLING_DELETE_FILES,
+              HIVE_COMMIT_SYNC,
+              DATA_EXPIRING));
 
   public static boolean isArbitrary(Action action) {
     return ARBITRARY_ACTIONS.contains(action);

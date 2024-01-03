@@ -16,31 +16,14 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.maintainning;
 
-import java.io.Serializable;
-import java.util.Map;
+import com.netease.arctic.process.TaskExecutor;
 
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
-
-  /* Execute task */
-  O execute();
-
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
-  }
-
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
-  }
-}
+/**
+ * An interface represent all input of maintaining that will be executed by {@link
+ * MaintainingExecutor}. MaintainingInput contains some options information that can be used to
+ * control the behavior of {@link MaintainingExecutor}. such as snapshots keep time for snapshots
+ * expiring, orphan file existing time, data expire level, etc.
+ */
+public interface MaintainingInput extends TaskExecutor.Input {}

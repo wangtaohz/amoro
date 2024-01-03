@@ -22,10 +22,10 @@ import static com.netease.arctic.utils.ArcticTableUtil.BLOB_TYPE_OPTIMIZED_SEQUE
 import static org.apache.iceberg.relocated.com.google.common.primitives.Longs.min;
 
 import com.netease.arctic.IcebergFileEntry;
+import com.netease.arctic.ams.api.config.DataExpirationConfig;
 import com.netease.arctic.data.FileNameRules;
 import com.netease.arctic.hive.utils.TableTypeUtil;
 import com.netease.arctic.scan.TableEntriesScan;
-import com.netease.arctic.ams.api.config.DataExpirationConfig;
 import com.netease.arctic.server.table.DefaultTableRuntime;
 import com.netease.arctic.server.utils.HiveLocationUtil;
 import com.netease.arctic.server.utils.IcebergTableUtil;
@@ -272,6 +272,15 @@ public class MixedTableMaintainer implements TableMaintainer {
     throw new UnsupportedOperationException("Mixed table doesn't support auto create tags");
   }
 
+  @Override
+  public Map<String, String> getSummary() {
+    Map<String, String> summary = baseMaintainer.getSummary();
+    if (changeMaintainer != null) {
+      summary.putAll(changeMaintainer.getSummary());
+    }
+    return summary;
+  }
+
   protected void cleanContentFiles(long lastTime) {
     if (changeMaintainer != null) {
       changeMaintainer.cleanContentFiles(lastTime);
@@ -308,7 +317,7 @@ public class MixedTableMaintainer implements TableMaintainer {
     private final UnkeyedTable unkeyedTable;
 
     public ChangeTableMaintainer(UnkeyedTable unkeyedTable) {
-      super(unkeyedTable);
+      super(unkeyedTable, new ChangeStoreMaintainerSummaryCollector());
       this.unkeyedTable = unkeyedTable;
     }
 
@@ -462,6 +471,9 @@ public class MixedTableMaintainer implements TableMaintainer {
               end,
               changeFiles.size());
         }
+        summaryCollector.collect(
+            ChangeStoreMaintainerSummaryCollector.SNAPSHOT_EXPIRING_DELETE_EXPIRED_FILE_COUNT,
+            String.valueOf(changeFiles.size()));
       } catch (Throwable t) {
         LOG.error(unkeyedTable.name() + " failed to delete change files, ignore", t);
       }
@@ -471,7 +483,7 @@ public class MixedTableMaintainer implements TableMaintainer {
   public class BaseTableMaintainer extends IcebergTableMaintainer {
 
     public BaseTableMaintainer(UnkeyedTable unkeyedTable) {
-      super(unkeyedTable);
+      super(unkeyedTable, new BasicMaintainerSummaryCollector());
     }
 
     @Override
