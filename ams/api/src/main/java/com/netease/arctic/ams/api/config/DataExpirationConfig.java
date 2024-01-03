@@ -11,11 +11,12 @@ import org.apache.iceberg.types.Types;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.Locale;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DataExpirationConfig {
+public class DataExpirationConfig implements Serializable {
   // data-expire.enabled
   private boolean enabled;
   // data-expire.field

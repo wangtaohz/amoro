@@ -16,31 +16,15 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.maintainning;
 
-import java.io.Serializable;
-import java.util.Map;
-
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
-
-  /* Execute task */
-  O execute();
-
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
+public class HiveCommitSyncExecutor extends AbstractMaintainingExecutor {
+  public HiveCommitSyncExecutor(BasicMaintainingInput input) {
+    super(input);
   }
 
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
+  @Override
+  public BasicMaintainingOutput execute() {
+    return null;
   }
 }

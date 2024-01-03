@@ -4,13 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.Objects;
 import com.netease.arctic.ams.api.Action;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TableConfiguration {
+public class TableConfiguration implements Serializable {
 
   private boolean expireSnapshotEnabled;
   private long snapshotTTLMinutes;

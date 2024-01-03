@@ -37,6 +37,7 @@ import com.netease.arctic.server.optimizerlegacy.KeyedTableFileScanHelper;
 import com.netease.arctic.server.optimizerlegacy.TableFileScanHelper;
 import com.netease.arctic.server.optimizerlegacy.UnkeyedTableFileScanHelper;
 import com.netease.arctic.server.optimizing.OptimizingTestHelpers;
+import com.netease.arctic.server.process.maintain.BasicMaintainerSummaryCollector;
 import com.netease.arctic.server.process.maintain.IcebergTableMaintainer;
 import com.netease.arctic.server.process.maintain.MixedTableMaintainer;
 import com.netease.arctic.server.table.KeyedTableSnapshot;
@@ -380,7 +381,8 @@ public class TestDataExpire extends ExecutorTestBase {
   protected void getMaintainerAndExpire(DataExpirationConfig config, String datetime) {
     if (getTestFormat().equals(TableFormat.ICEBERG)) {
       IcebergTableMaintainer icebergTableMaintainer =
-          new IcebergTableMaintainer(getArcticTable().asUnkeyedTable());
+          new IcebergTableMaintainer(
+              getArcticTable().asUnkeyedTable(), new BasicMaintainerSummaryCollector());
       icebergTableMaintainer.expireDataFrom(
           config,
           LocalDateTime.parse(datetime)

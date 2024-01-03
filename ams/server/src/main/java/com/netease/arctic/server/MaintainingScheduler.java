@@ -3,25 +3,32 @@ package com.netease.arctic.server;
 import com.netease.arctic.ams.api.Action;
 import com.netease.arctic.ams.api.ServerTableIdentifier;
 import com.netease.arctic.ams.api.TableRuntime;
+import com.netease.arctic.ams.api.config.TableConfiguration;
 import com.netease.arctic.ams.api.process.AmoroProcess;
 import com.netease.arctic.ams.api.process.ProcessStatus;
 import com.netease.arctic.ams.api.process.TableProcess;
 import com.netease.arctic.ams.api.process.TableState;
 import com.netease.arctic.ams.api.resource.ResourceGroup;
+import com.netease.arctic.maintainning.BasicMaintainingInput;
+import com.netease.arctic.maintainning.MaintainingInput;
+import com.netease.arctic.maintainning.MaintainingOutput;
+import com.netease.arctic.maintainning.SnapshotsExpiringInput;
 import com.netease.arctic.server.process.ArbitraryProcess;
 import com.netease.arctic.server.process.ManagedProcess;
 import com.netease.arctic.server.process.TaskRuntime;
 import com.netease.arctic.server.table.DefaultTableRuntime;
+import com.netease.arctic.table.ArcticTable;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.iceberg.relocated.com.google.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,7 +38,7 @@ import java.util.stream.Stream;
 public class MaintainingScheduler extends TaskScheduler<TableState> {
 
   private final Set<Action> targetActions;
-  private final Queue<TableMaintenance> tableQueue = new PriorityQueue<>();
+  private final Queue<TableMaintenance> tableQueue = new DelayQueue<>();
   private final Map<ServerTableIdentifier, Action> tableActionMap = new HashMap<>();
   private final AtomicLong maxProcessId = new AtomicLong(0);
 
@@ -47,7 +54,10 @@ public class MaintainingScheduler extends TaskScheduler<TableState> {
   protected ManagedProcess<TableState> createProcess(
       DefaultTableRuntime tableRuntime, Action action) {
     return new ArbitraryProcess(
-        maxProcessId.incrementAndGet(), action, tableRuntime, buildTaskRuntime());
+        maxProcessId.incrementAndGet(),
+        action,
+        tableRuntime,
+        buildTaskRuntime(tableRuntime, action));
   }
 
   @Override
@@ -120,8 +130,22 @@ public class MaintainingScheduler extends TaskScheduler<TableState> {
         .collect(Collectors.toList());
   }
 
-  private TaskRuntime<?, ?> buildTaskRuntime() {
-    return null;
+  private TaskRuntime<MaintainingInput, MaintainingOutput> buildTaskRuntime(
+      DefaultTableRuntime tableRuntime, Action action) {
+    // TODO: hjm 'fetchOptimizingPlanSnapshotTime'
+    long optimizingPlanSnapshotTime = 0;
+    ArcticTable arcticTable = (ArcticTable) tableRuntime.loadTable().originalTable();
+    TableConfiguration tableConfiguration = tableRuntime.getTableConfiguration();
+    MaintainingInput input;
+    if (action == Action.EXPIRE_SNAPSHOTS) {
+      input =
+          new SnapshotsExpiringInput(
+              arcticTable, action, tableConfiguration, optimizingPlanSnapshotTime);
+    } else {
+      input = new BasicMaintainingInput(arcticTable, action, tableConfiguration);
+    }
+    // TODO: hjm taskID, summaryBuilder
+    return new TaskRuntime<>(taskId, input, Maps.newHashMap(), summaryBuilder);
   }
 
   private TableMaintenance tryCreateMaintenance(DefaultTableRuntime tableRuntime) {
@@ -155,7 +179,7 @@ public class MaintainingScheduler extends TaskScheduler<TableState> {
     }
 
     public AmoroProcess<? extends TableState> run() {
-      return tableRuntime.runAction(action);
+      return tableRuntime.runArbitraryAction(action);
     }
 
     public DefaultTableRuntime getTableRuntime() {

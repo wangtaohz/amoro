@@ -16,31 +16,26 @@
  * limitations under the License.
  */
 
-package com.netease.arctic.process;
+package com.netease.arctic.maintainning;
 
-import java.io.Serializable;
-import java.util.Map;
+import com.netease.arctic.ams.api.Action;
+import com.netease.arctic.ams.api.config.TableConfiguration;
+import com.netease.arctic.table.ArcticTable;
 
-public interface TaskExecutor<O extends TaskExecutor.Output> extends Serializable {
+public class SnapshotsExpiringInput extends BasicMaintainingInput {
 
-  /* Execute task */
-  O execute();
+  private final long optimizingPlanSnapshotTime;
 
-  /* Input of TaskExecutor */
-  interface Input extends Serializable {
-    /** Set option for this Input. */
-    void option(String name, String value);
-
-    /** Set options for this Input. */
-    void options(Map<String, String> options);
-
-    /** Get options. */
-    Map<String, String> getOptions();
+  public SnapshotsExpiringInput(
+      ArcticTable table,
+      Action action,
+      TableConfiguration tableConfiguration,
+      long optimizingPlanSnapshotTime) {
+    super(table, action, tableConfiguration);
+    this.optimizingPlanSnapshotTime = optimizingPlanSnapshotTime;
   }
 
-  /* Output of TaskExecutor */
-  interface Output extends Serializable {
-    /** Get summary. */
-    Map<String, String> summary();
+  public long getOptimizingPlanSnapshotTime() {
+    return optimizingPlanSnapshotTime;
   }
 }

@@ -18,6 +18,8 @@
 
 package com.netease.arctic.server.process.maintain;
 
+import static org.apache.iceberg.relocated.com.google.common.primitives.Longs.min;
+
 import com.netease.arctic.ams.api.CommitMetaProducer;
 import com.netease.arctic.ams.api.config.DataExpirationConfig;
 import com.netease.arctic.ams.api.config.TableConfiguration;
@@ -86,8 +88,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.iceberg.relocated.com.google.common.primitives.Longs.min;
-
 /** Table maintainer for iceberg tables. */
 public class IcebergTableMaintainer implements TableMaintainer {
 
@@ -106,7 +106,10 @@ public class IcebergTableMaintainer implements TableMaintainer {
 
   protected Table table;
 
-  public IcebergTableMaintainer(Table table) {
+  protected final BasicMaintainerSummaryCollector summaryCollector;
+
+  public IcebergTableMaintainer(Table table, BasicMaintainerSummaryCollector summaryCollector) {
+    this.summaryCollector = summaryCollector;
     this.table = table;
   }
 
@@ -201,6 +204,12 @@ public class IcebergTableMaintainer implements TableMaintainer {
       parentDirectory.forEach(
           parent -> TableFileUtil.deleteEmptyDirectory(arcticFileIO(), parent, exclude));
     }
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.SNAPSHOT_EXPIRING_TO_DELETE_EXPIRED_FILE_COUNT,
+        String.valueOf(toDeleteFiles.get()));
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.SNAPSHOT_EXPIRING_DELETE_EXPIRED_FILE_COUNT,
+        String.valueOf(deleteFiles.get()));
     LOG.info("to delete {} files, success delete {} files", toDeleteFiles.get(), deleteFiles.get());
   }
 
@@ -260,6 +269,11 @@ public class IcebergTableMaintainer implements TableMaintainer {
         .execute();
   }
 
+  @Override
+  public Map<String, String> getSummary() {
+    return this.summaryCollector.buildSummary();
+  }
+
   protected void cleanContentFiles(long lastTime) {
     // For clean data files, should getRuntime valid files in the base store and the change store,
     // so acquire in advance
@@ -267,18 +281,27 @@ public class IcebergTableMaintainer implements TableMaintainer {
     Set<String> validFiles = orphanFileCleanNeedToExcludeFiles();
     LOG.info("{} start clean content files of change store", table.name());
     int deleteFilesCnt = clearInternalTableContentsFiles(lastTime, validFiles);
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.ORPHAN_FILES_CLEANING_DELETE_CONTENT_FILES_COUNT,
+        String.valueOf(deleteFilesCnt));
     LOG.info("{} total delete {} files from change store", table.name(), deleteFilesCnt);
   }
 
   protected void cleanMetadata(long lastTime) {
     LOG.info("{} start clean metadata files", table.name());
     int deleteFilesCnt = clearInternalTableMetadata(lastTime);
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.ORPHAN_FILES_CLEANING_DELETE_METADATA_FILES_COUNT,
+        String.valueOf(deleteFilesCnt));
     LOG.info("{} total delete {} metadata files", table.name(), deleteFilesCnt);
   }
 
   protected void cleanDanglingDeleteFiles() {
     LOG.info("{} start delete dangling delete files", table.name());
     int danglingDeleteFilesCnt = clearInternalTableDanglingDeleteFiles();
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.DANGLING_DELETES_CLEANING_DELETE_DANGLING_COUNT,
+        String.valueOf(danglingDeleteFilesCnt));
     LOG.info("{} total delete {} dangling delete files", table.name(), danglingDeleteFilesCnt);
   }
 
@@ -697,6 +720,12 @@ public class IcebergTableMaintainer implements TableMaintainer {
     // partitionPath,
     //  sequenceNumber) and expireTimestamp...
 
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.DATA_EXPIRING_DELETE_EXPIRED_DATAFILES_COUNT,
+        String.valueOf(dataFiles.size()));
+    summaryCollector.collect(
+        BasicMaintainerSummaryCollector.DATA_EXPIRING_DELETE_EXPIRED_DELETE_FILES_COUNT,
+        String.valueOf(deleteFiles.size()));
     LOG.info(
         "Expired {} files older than {}, {} data files[{}] and {} delete files[{}]",
         table.name(),
